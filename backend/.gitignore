@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Secrets
+.env
+
+# Local Database Files
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
