@@ -57,7 +57,7 @@ const RegisterPage = () => {
                 <UserPlus size={28} />
               </div>
 
-              <h2 style={{ fontSize: '1.8rem', marginBottom: '6px' }}>Create Student Account</h2>
+              <h2 style={{ fontSize: '1.8rem', marginBottom: '6px' }}>Create Account</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Join NEC Store to browse items, maintain cart state, and order campus products.
               </p>

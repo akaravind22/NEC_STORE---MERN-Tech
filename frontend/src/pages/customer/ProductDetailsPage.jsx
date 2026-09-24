@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, ArrowLeft, Minus, Plus, ShieldCheck, Truck } from 'lucide-react';
 import axios from 'axios';
 import GlassCard from '../../components/common/GlassCard';
@@ -13,10 +13,18 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const { addToCart } = useCartStore();
+
+  const handleAddToCart = () => {
+    const res = addToCart(product, qty);
+    if (res === false) {
+      navigate('/login');
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -145,7 +153,7 @@ const ProductDetailsPage = () => {
                   size="lg"
                   disabled={isOutOfStock}
                   icon={ShoppingCart}
-                  onClick={() => addToCart(product, qty)}
+                  onClick={handleAddToCart}
                   style={{ flex: 1 }}
                 >
                   {isOutOfStock ? 'Out of Stock' : `Add ${qty} to Cart (₹${(parseFloat(product.sellingPrice) * qty).toFixed(2)})`}

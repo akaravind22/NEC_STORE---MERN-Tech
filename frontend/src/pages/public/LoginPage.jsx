@@ -56,7 +56,7 @@ const LoginPage = () => {
                 <KeyRound size={28} />
               </div>
 
-              <h2 style={{ fontSize: '1.8rem', marginBottom: '6px' }}>Student & Staff Login</h2>
+              <h2 style={{ fontSize: '1.8rem', marginBottom: '6px' }}>Account Login</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Enter your registered email address to receive a 6-digit login verification OTP.
               </p>

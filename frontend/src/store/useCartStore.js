@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useToastStore } from './useToastStore';
+import { useAuthStore } from './useAuthStore';
 
 export const useCartStore = create((set, get) => ({
   cart: JSON.parse(localStorage.getItem('nec_cart')) || [],
@@ -10,6 +11,12 @@ export const useCartStore = create((set, get) => ({
   },
 
   addToCart: (product, qty = 1) => {
+    const isAuthenticated = useAuthStore.getState().isAuthenticated;
+    if (!isAuthenticated) {
+      useToastStore.getState().addToast('Please login to add items to your cart.', 'warning');
+      return false;
+    }
+
     const currentCart = get().cart;
     const existingIndex = currentCart.findIndex((item) => item.productId === product.id);
 

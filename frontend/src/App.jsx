@@ -76,7 +76,14 @@ function App() {
         {/* Customer Routes */}
         <Route path="/customer/products" element={<ProductsPage />} />
         <Route path="/customer/products/:id" element={<ProductDetailsPage />} />
-        <Route path="/customer/cart" element={<CartPage />} />
+        <Route
+          path="/customer/cart"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'RETAILER', 'ADMIN']}>
+              <CartPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/customer/checkout"
           element={

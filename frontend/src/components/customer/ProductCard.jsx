@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Check, AlertCircle } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import GlassButton from '../common/GlassButton';
@@ -7,6 +7,14 @@ import { useCartStore } from '../../store/useCartStore';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCartStore();
+  const navigate = useNavigate();
+
+  const handleAddToCart = () => {
+    const res = addToCart(product, 1);
+    if (res === false) {
+      navigate('/login');
+    }
+  };
 
   const isOutOfStock = product.quantity <= 0;
   const isLowStock = product.quantity > 0 && product.quantity <= product.lowStockThreshold;
@@ -95,7 +103,7 @@ const ProductCard = ({ product }) => {
               size="sm"
               disabled={isOutOfStock}
               icon={ShoppingCart}
-              onClick={() => addToCart(product, 1)}
+              onClick={handleAddToCart}
               className="w-full"
               style={{ width: '100%' }}
             >

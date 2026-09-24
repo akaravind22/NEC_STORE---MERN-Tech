@@ -119,48 +119,50 @@ const Navbar = () => {
         {/* Notifications */}
         {isAuthenticated && <NotificationBell />}
 
-        {/* Shopping Cart Badge */}
-        <Link
-          to="/customer/cart"
-          style={{
-            position: 'relative',
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-main)',
-            textDecoration: 'none'
-          }}
-        >
-          <ShoppingCart size={19} />
-          {cartCount > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '-3px',
-                right: '-3px',
-                background: 'var(--gradient-primary)',
-                color: '#fff',
-                fontSize: '0.7rem',
-                fontWeight: 800,
-                borderRadius: '9999px',
-                minWidth: '18px',
-                height: '18px',
-                padding: '0 4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.5)'
-              }}
-            >
-              {cartCount}
-            </span>
-          )}
-        </Link>
+        {/* Shopping Cart Badge - Only shown when logged in */}
+        {isAuthenticated && (
+          <Link
+            to="/customer/cart"
+            style={{
+              position: 'relative',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-main)',
+              textDecoration: 'none'
+            }}
+          >
+            <ShoppingCart size={19} />
+            {cartCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-3px',
+                  right: '-3px',
+                  background: 'var(--gradient-primary)',
+                  color: '#fff',
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  borderRadius: '9999px',
+                  minWidth: '18px',
+                  height: '18px',
+                  padding: '0 4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.5)'
+                }}
+              >
+                {cartCount}
+              </span>
+            )}
+          </Link>
+        )}
 
         {/* User Account / Login */}
         {isAuthenticated ? (
