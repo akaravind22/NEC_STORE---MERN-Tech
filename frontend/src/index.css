@@ -1,55 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --font-primary: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
-
-  /* Clean Standard Web Page Colors */
-  --bg-gradient: none;
+  /* Brand Theme Colors - Light Mode Default */
   --bg-color: #f8fafc;
   --card-bg: #ffffff;
+  --card-bg-hover: #f1f5f9;
+  --primary-blue: #2563eb;
+  --primary-purple: #7c3aed;
+  --status-success: #16a34a;
+  --status-warning: #d97706;
+  --status-danger: #dc2626;
+
+  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --gradient-secondary: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  --gradient-accent: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
+  --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+
+  --font-heading: 'Outfit', sans-serif;
+  --font-primary: 'Plus Jakarta Sans', sans-serif;
+
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
 
-  /* Normal Border & Shadow Tokens */
   --glass-bg: #ffffff;
   --glass-bg-hover: #f8fafc;
   --glass-border: #e2e8f0;
   --glass-border-subtle: #cbd5e1;
-  --glass-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  --glass-glow: none;
+  --glass-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
   --glass-blur: none;
+  --glass-glow: none;
 
-  /* Standard Palette */
-  --primary-blue: #2563eb;
-  --primary-cyan: #0284c7;
-  --primary-purple: #7c3aed;
-  --primary-violet: #8b5cf6;
-  --accent-pink: #db2777;
-  
-  --gradient-primary: #2563eb;
-  --gradient-secondary: #7c3aed;
-  --gradient-accent: #0284c7;
-  --gradient-danger: #dc2626;
-
-  /* Status colors */
-  --status-success: #16a34a;
-  --status-warning: #d97706;
-  --status-danger: #dc2626;
-  --status-info: #2563eb;
-
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
   --radius-full: 9999px;
 }
 
 [data-theme="dark"] {
-  --bg-gradient: none;
   --bg-color: #0f172a;
   --card-bg: #1e293b;
+  --card-bg-hover: #334155;
+  --primary-blue: #38bdf8;
+  --primary-purple: #a855f7;
+
+  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  --gradient-secondary: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --text-subtle: #64748b;
@@ -118,7 +116,6 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--glass-shadow);
   transition: all 200ms ease;
   position: relative;
-  overflow: hidden;
 }
 
 .glass-card::before {

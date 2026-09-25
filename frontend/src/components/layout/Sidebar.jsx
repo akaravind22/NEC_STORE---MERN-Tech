@@ -109,7 +109,7 @@ const Sidebar = () => {
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{user?.name}</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--primary-purple)', fontWeight: 600 }}>{user?.role}</div>
           </div>
-          <NotificationBell />
+          <NotificationBell placement="left" />
         </div>
 
         {/* Navigation Items */}

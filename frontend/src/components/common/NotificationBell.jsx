@@ -3,7 +3,7 @@ import { Bell, Check, CheckCheck, Info, ShoppingBag, AlertTriangle, UserPlus } f
 import { useAuthStore } from '../../store/useAuthStore';
 import GlassCard from './GlassCard';
 
-const NotificationBell = () => {
+const NotificationBell = ({ placement = 'right' }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -119,7 +119,7 @@ const NotificationBell = () => {
           style={{
             position: 'absolute',
             top: '52px',
-            right: 0,
+            ...(placement === 'left' ? { left: 0 } : { right: 0 }),
             width: '350px',
             zIndex: 1000,
             animation: 'fadeIn 200ms ease'
