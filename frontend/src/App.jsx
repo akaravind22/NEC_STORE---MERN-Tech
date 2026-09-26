@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import BackgroundBlobs from './components/common/BackgroundBlobs';
 import ToastContainer from './components/common/ToastContainer';
+import Chatbot from './components/common/Chatbot';
 import { useAuthStore } from './store/useAuthStore';
 
 // Public Pages
@@ -66,6 +67,7 @@ function App() {
     <Router>
       <BackgroundBlobs />
       <ToastContainer />
+      <Chatbot />
 
       <Routes>
         {/* Public Routes */}
