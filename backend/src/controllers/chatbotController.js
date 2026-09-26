@@ -119,7 +119,7 @@ exports.handleChatMessage = async (req, res) => {
       } else if (lowerMsg.includes('create retailer') || lowerMsg.includes('add staff') || lowerMsg.includes('role')) {
         reply = `🛡️ **Admin Role Provisioning Guide:**\n\n` +
           `1. Students only register publicly as Customers.\n` +
-          `2. To create a Retailer / Staff account, visit **User Management** (`/admin/users`).\n` +
+          `2. To create a Retailer / Staff account, visit **User Management** (/admin/users).\n` +
           `3. Click **"+ Create Retailer / Staff"** button and enter their name, college email, and department.\n` +
           `4. They will immediately receive an email OTP and gain retailer management access.`;
 
@@ -212,20 +212,20 @@ exports.handleChatMessage = async (req, res) => {
         // Low stock items
         const lowStockItems = await Product.findAll({
           where: {
-            stock: { [Op.lte]: 5 }
+            quantity: { [Op.lte]: 5 }
           },
-          order: [['stock', 'ASC']],
+          order: [['quantity', 'ASC']],
           limit: 6
         });
 
-        const totalStockUnits = await Product.sum('stock') || 0;
+        const totalStockUnits = await Product.sum('quantity') || 0;
         const totalActiveProds = await Product.count();
 
         if (lowStockItems.length === 0) {
           reply = `✅ **Inventory Health:** Excellent! All **${totalActiveProds}** products have sufficient stock (Total Units: **${totalStockUnits}**). No products currently below threshold.`;
         } else {
           reply = `⚠️ **Low Stock Alert (${lowStockItems.length} Products Need Replenishment):**\n\n` +
-            lowStockItems.map(p => `• **${p.name}**: ${p.stock === 0 ? '❌ **OUT OF STOCK**' : `⚠️ **${p.stock} units left** (Threshold: ${p.lowStockThreshold || 5})`} — Price: ${formatRupee(p.sellingPrice || p.price)}`).join('\n') +
+            lowStockItems.map(p => `• **${p.name}**: ${p.quantity === 0 ? '❌ **OUT OF STOCK**' : `⚠️ **${p.quantity} units left** (Threshold: ${p.lowStockThreshold || 5})`} — Price: ${formatRupee(p.sellingPrice || p.price)}`).join('\n') +
             `\n\n*Total Active Catalog: ${totalActiveProds} products | Total Stock: ${totalStockUnits} units.* `;
         }
 
@@ -432,9 +432,9 @@ exports.handleChatMessage = async (req, res) => {
     if (matchedProducts.length > 0) {
       reply = `🔍 **Product Availability Search Results:**\n\n` +
         matchedProducts.map(p => {
-          const inStock = p.stock > 0;
+          const inStock = (p.quantity ?? 0) > 0;
           const stockTag = inStock
-            ? `✅ **In Stock** (${p.stock} available)`
+            ? `✅ **In Stock** (${p.quantity} available)`
             : `❌ **Out of Stock** (Reorder pending)`;
           return `• **${p.name}**\n  - Price: **${formatRupee(p.sellingPrice || p.price)}**\n  - Availability: ${stockTag}\n  - Category: ${p.Category?.name || 'General'}`;
         }).join('\n\n') +
@@ -448,7 +448,7 @@ exports.handleChatMessage = async (req, res) => {
     } else {
       // No exact keyword match, fetch popular available items
       const popularProducts = await Product.findAll({
-        where: { stock: { [Op.gt]: 0 } },
+        where: { quantity: { [Op.gt]: 0 } },
         limit: 4
       });
 

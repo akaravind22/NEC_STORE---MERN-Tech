@@ -153,9 +153,9 @@ export default function Chatbot() {
 
     window.speechSynthesis.cancel();
 
+    // Manual click always speaks and ensures voiceAssist is on
     if (!voiceAssistEnabled) {
-      setCurrentlySpeakingId(null);
-      return;
+      setVoiceAssistEnabled(true);
     }
 
     const cleanText = cleanForSpeech(text);
@@ -300,10 +300,7 @@ export default function Chatbot() {
         setMessages(prev => [...prev, botMessage]);
         if (!isOpen) setHasUnread(true);
 
-        // Voice Assistance: Speak bot reply out loud if enabled!
-        if (voiceAssistEnabled) {
-          setTimeout(() => speakText(res.data.reply, botMsgId), 250);
-        }
+        // Manual voice assist: Voice will only play when user clicks "Listen in Voice"
       } else {
         throw new Error(res.data?.message || 'Failed to get response');
       }
@@ -320,9 +317,7 @@ export default function Chatbot() {
       };
       setMessages(prev => [...prev, errorMessage]);
 
-      if (voiceAssistEnabled) {
-        setTimeout(() => speakText(errReply, errMsgId), 250);
-      }
+      // Manual voice assist: No auto-play on error
     } finally {
       setIsLoading(false);
     }
@@ -635,7 +630,7 @@ export default function Chatbot() {
                   >
                     {activeConfig.badge}
                   </span>
-                  <span style={{ fontSize: '10.5px', opacity: 0.9 }}>• Voice Assist</span>
+                  <span style={{ fontSize: '10.5px', opacity: 0.9 }}>• Voice Enabled</span>
                 </div>
               </div>
             </div>
@@ -805,42 +800,72 @@ export default function Chatbot() {
                     >
                       {renderFormattedText(msg.text)}
 
-                      {/* Mini Speaker button on bot bubbles to replay voice */}
+                      {/* Manual Voice Button on bot bubbles */}
                       {!isUser && (
                         <div
                           style={{
                             display: 'flex',
                             justifyContent: 'flex-end',
-                            marginTop: '6px'
+                            marginTop: '8px',
+                            borderTop: '1px solid var(--neu-border-subtle, rgba(226, 232, 240, 0.6))',
+                            paddingTop: '6px'
                           }}
                         >
                           <button
                             onClick={() => {
                               if (isThisSpeaking) {
-                                window.speechSynthesis.cancel();
+                                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
                                 setCurrentlySpeakingId(null);
                               } else {
                                 speakText(msg.text, msg.id);
                               }
                             }}
-                            title={isThisSpeaking ? "Stop speaking" : "Listen aloud"}
+                            title={isThisSpeaking ? "Click to stop speaking" : "Click to hear this response in voice"}
                             style={{
-                              background: isThisSpeaking ? 'rgba(37, 99, 235, 0.15)' : 'transparent',
-                              border: 'none',
-                              color: isThisSpeaking ? '#2563eb' : 'var(--text-muted, #94a3b8)',
+                              background: isThisSpeaking 
+                                ? '#2563eb' 
+                                : 'var(--bg-color, #f1f5f9)',
+                              border: isThisSpeaking 
+                                ? '1px solid #1d4ed8' 
+                                : '1px solid var(--neu-border-subtle, #cbd5e1)',
+                              color: isThisSpeaking ? '#ffffff' : 'var(--primary-blue, #2563eb)',
                               cursor: 'pointer',
-                              padding: '3px 6px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
+                              padding: '4px 10px',
+                              borderRadius: '10px',
+                              fontSize: '11.5px',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '4px',
+                              gap: '5px',
                               fontWeight: 600,
-                              transition: 'all 0.15s'
+                              transition: 'all 0.2s ease',
+                              boxShadow: isThisSpeaking 
+                                ? '0 2px 8px rgba(37, 99, 235, 0.35)' 
+                                : '0 1px 3px rgba(0,0,0,0.05)'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isThisSpeaking) {
+                                e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)';
+                                e.currentTarget.style.borderColor = '#2563eb';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isThisSpeaking) {
+                                e.currentTarget.style.background = 'var(--bg-color, #f1f5f9)';
+                                e.currentTarget.style.borderColor = 'var(--neu-border-subtle, #cbd5e1)';
+                              }
                             }}
                           >
-                            <Volume2 size={13} />
-                            <span>{isThisSpeaking ? 'Speaking...' : 'Listen'}</span>
+                            {isThisSpeaking ? (
+                              <>
+                                <VolumeX size={13} color="#ffffff" />
+                                <span>Speaking... Click to Stop</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 size={13} color="#2563eb" />
+                                <span>🔊 Listen in Voice</span>
+                              </>
+                            )}
                           </button>
                         </div>
                       )}
