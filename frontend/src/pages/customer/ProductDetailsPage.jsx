@@ -60,7 +60,7 @@ const ProductDetailsPage = () => {
         <Navbar />
         <main className="app-container" style={{ padding: '80px 0', textAlign: 'center' }}>
           <h2>Product Not Found</h2>
-          <Link to="/customer/products" style={{ textDecoration: 'none', marginTop: '16px', display: 'inline-block' }}>
+          <Link to="/products" style={{ textDecoration: 'none', marginTop: '16px', display: 'inline-block' }}>
             <GlassButton variant="primary">Back to Products</GlassButton>
           </Link>
         </main>
@@ -84,7 +84,7 @@ const ProductDetailsPage = () => {
       <Navbar />
 
       <main className="app-container">
-        <Link to="/customer/products" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', marginBottom: '24px', fontWeight: 600 }}>
+        <Link to="/products" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', marginBottom: '24px', fontWeight: 600 }}>
           <ArrowLeft size={18} /> Back to Products
         </Link>
 

@@ -79,7 +79,7 @@ const ProductCard = ({ product }) => {
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
         <div>
           <Link
-            to={`/customer/products/${product.id}`}
+            to={`/products/${product.id}`}
             style={{ textDecoration: 'none', color: 'var(--text-main)' }}
           >
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '8px', lineHeight: 1.3 }}>
@@ -95,7 +95,7 @@ const ProductCard = ({ product }) => {
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '14px' }}>
             <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-blue)' }}>
-              ?{parseFloat(product.sellingPrice).toFixed(2)}
+              ₹{parseFloat(product.sellingPrice).toFixed(2)}
             </span>
           </div>
 

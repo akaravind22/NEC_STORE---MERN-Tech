@@ -74,7 +74,9 @@ function App() {
         <Route path="/verify-otp" element={<OTPVerifyPage />} />
 
         {/* Customer Routes */}
-        <Route path="/customer/products" element={<ProductsPage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/:id" element={<ProductDetailsPage />} />
+        <Route path="/customer/products" element={<Navigate to="/products" replace />} />
         <Route path="/customer/products/:id" element={<ProductDetailsPage />} />
         <Route
           path="/customer/cart"

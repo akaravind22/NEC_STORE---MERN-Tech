@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Store, ShieldCheck, Heart } from 'lucide-react';
+import { Store, ShieldCheck } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 
 const Footer = () => {
@@ -11,7 +11,7 @@ const Footer = () => {
           {/* Brand Info */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: 'var(--neu-extruded-sm)' }}>
                 <Store size={20} />
               </div>
               <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>
@@ -28,7 +28,7 @@ const Footer = () => {
             <h4 style={{ fontSize: '0.95rem', marginBottom: '16px', color: 'var(--text-main)' }}>Quick Links</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
               <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Home</Link>
-              <Link to="/customer/products" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Browse Products</Link>
+              <Link to="/products" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Browse Products</Link>
               <Link to="/customer/cart" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Shopping Cart</Link>
               <Link to="/login" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Account Login</Link>
             </div>
@@ -46,10 +46,10 @@ const Footer = () => {
           </div>
         </div>
 
-        <div style={{ paddingTop: '20px', borderTop: '1px solid var(--glass-border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '0.8rem', color: 'var(--text-subtle)' }}>
-          <div>© 2026 NEC Store. All rights reserved.</div>
+        <div style={{ paddingTop: '20px', borderTop: '1px solid var(--neu-border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '0.8rem', color: 'var(--text-subtle)' }}>
+          <div>� 2026 NEC Store. All rights reserved.</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldCheck size={16} color="var(--primary-cyan)" /> Verified Razorpay Payment Gateway & TLS Security
+            <ShieldCheck size={16} color="var(--primary-blue)" /> Verified Razorpay Payment Gateway & TLS Security
           </div>
         </div>
       </GlassCard>

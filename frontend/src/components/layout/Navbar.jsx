@@ -12,6 +12,10 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isCustomer = user?.role === 'CUSTOMER';
+  const isRetailer = user?.role === 'RETAILER';
+  const isAdmin = user?.role === 'ADMIN';
+
   const isActive = (path) => location.pathname === path;
 
   return (
@@ -63,23 +67,23 @@ const Navbar = () => {
           Home
         </Link>
         <Link
-          to="/customer/products"
+          to="/products"
           style={{
             padding: '8px 18px',
             borderRadius: '9999px',
             fontSize: '0.9rem',
             fontWeight: 600,
             textDecoration: 'none',
-            color: isActive('/customer/products') ? 'var(--primary-blue)' : 'var(--text-muted)',
+            color: isActive('/products') ? 'var(--primary-blue)' : 'var(--text-muted)',
             background: 'var(--card-bg)',
-            boxShadow: isActive('/customer/products') ? 'var(--neu-pressed-sm)' : 'var(--neu-extruded-sm)',
+            boxShadow: isActive('/products') ? 'var(--neu-pressed-sm)' : 'var(--neu-extruded-sm)',
             border: '1px solid var(--neu-border)',
             transition: 'all 200ms ease'
           }}
         >
           Products
         </Link>
-        {isAuthenticated && user?.role === 'CUSTOMER' && (
+        {isAuthenticated && isCustomer && (
           <Link
             to="/customer/orders"
             style={{
@@ -96,6 +100,44 @@ const Navbar = () => {
             }}
           >
             Orders
+          </Link>
+        )}
+        {isAuthenticated && isRetailer && (
+          <Link
+            to="/retailer"
+            style={{
+              padding: '8px 18px',
+              borderRadius: '9999px',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              color: isActive('/retailer') ? '#ffffff' : 'var(--primary-purple)',
+              background: isActive('/retailer') ? 'var(--gradient-secondary)' : 'var(--card-bg)',
+              boxShadow: isActive('/retailer') ? 'var(--neu-pressed-sm)' : 'var(--neu-extruded-sm)',
+              border: '1px solid var(--neu-border)',
+              transition: 'all 200ms ease'
+            }}
+          >
+            Retailer Panel
+          </Link>
+        )}
+        {isAuthenticated && isAdmin && (
+          <Link
+            to="/admin"
+            style={{
+              padding: '8px 18px',
+              borderRadius: '9999px',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              color: isActive('/admin') ? '#ffffff' : 'var(--status-danger)',
+              background: isActive('/admin') ? 'var(--gradient-danger)' : 'var(--card-bg)',
+              boxShadow: isActive('/admin') ? 'var(--neu-pressed-sm)' : 'var(--neu-extruded-sm)',
+              border: '1px solid var(--neu-border)',
+              transition: 'all 200ms ease'
+            }}
+          >
+            Admin Panel
           </Link>
         )}
       </nav>
@@ -127,8 +169,8 @@ const Navbar = () => {
         {/* Notifications */}
         {isAuthenticated && <NotificationBell />}
 
-        {/* Shopping Cart Badge - Only shown when logged in */}
-        {isAuthenticated && (
+        {/* Shopping Cart Badge - Only shown for Students/Customers */}
+        {isAuthenticated && isCustomer && (
           <Link
             to="/customer/cart"
             className="neu-circle-btn"
@@ -202,7 +244,7 @@ const Navbar = () => {
               }}
             >
               <User size={16} color="var(--primary-blue)" />
-              <span>{user?.name.split(' ')[0]}</span>
+              <span>{user?.name ? user.name.split(' ')[0] : 'User'}</span>
               <span style={{ fontSize: '0.7rem', color: 'var(--primary-purple)', background: 'rgba(124, 58, 237, 0.1)', padding: '2px 8px', borderRadius: '8px', fontWeight: 700 }}>
                 {user?.role}
               </span>
