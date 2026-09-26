@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, ShoppingCart, User, Bell, LogIn, LogOut, Moon, Sun, Store, PackageCheck } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, User, Bell, LogIn, LogOut, Moon, Sun, Store, PackageCheck, Coffee, Briefcase } from 'lucide-react';
+import { useStoreTimingStore } from '../../store/useStoreTimingStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
 import NotificationBell from '../common/NotificationBell';
@@ -17,6 +18,49 @@ const Navbar = () => {
   const isAdmin = user?.role === 'ADMIN';
 
   const isActive = (path) => location.pathname === path;
+
+  const { liveStatus, fetchSettings } = useStoreTimingStore();
+
+  React.useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const getStatusBadgeConfig = () => {
+    const status = liveStatus?.effectiveStatus || 'OPEN';
+    switch (status) {
+      case 'OPEN':
+        return {
+          dotColor: '#16a34a',
+          pulseColor: 'rgba(22, 163, 74, 0.7)',
+          text: `Store Open: ${liveStatus?.formattedOpen || '8:30 AM'} – ${liveStatus?.formattedClose || '5:30 PM'}`,
+          title: 'Campus Store is currently OPEN for instant pickup'
+        };
+      case 'LUNCH_BREAK':
+        return {
+          dotColor: '#d97706',
+          pulseColor: 'rgba(217, 119, 6, 0.7)',
+          text: `🥪 Lunch Break (Back at ${liveStatus?.formattedLunchEnd || '2:00 PM'})`,
+          title: liveStatus?.message || 'Retailer is on lunch break'
+        };
+      case 'TEMPORARILY_CLOSED':
+        return {
+          dotColor: '#e11d48',
+          pulseColor: 'rgba(225, 29, 72, 0.7)',
+          text: '⏸️ Away on Campus Work',
+          title: liveStatus?.message || 'Retailer temporarily away'
+        };
+      case 'CLOSED':
+      default:
+        return {
+          dotColor: '#ef4444',
+          pulseColor: 'rgba(239, 68, 68, 0.7)',
+          text: `Store Closed (Opens ${liveStatus?.formattedOpen || '8:30 AM'})`,
+          title: liveStatus?.message || 'Campus Store is currently closed'
+        };
+    }
+  };
+
+  const statusConfig = getStatusBadgeConfig();
 
   return (
     <header className="floating-navbar">
@@ -46,6 +90,36 @@ const Navbar = () => {
           </div>
         </div>
       </Link>
+
+      {/* Store Hours Indicator */}
+      <div
+        title={statusConfig.title}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '7px',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          padding: '6px 14px',
+          borderRadius: '9999px',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--neu-border)',
+          boxShadow: 'var(--neu-pressed-sm)',
+          color: 'var(--text-main)',
+          cursor: 'help'
+        }}
+      >
+        <span
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: statusConfig.dotColor,
+            boxShadow: `0 0 8px ${statusConfig.pulseColor}`
+          }}
+        />
+        <span>{statusConfig.text}</span>
+      </div>
 
       {/* Center Navigation Links (Neumorphic Pills) */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

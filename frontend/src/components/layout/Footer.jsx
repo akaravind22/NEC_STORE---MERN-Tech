@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Store, ShieldCheck } from 'lucide-react';
+import { Store, ShieldCheck, Clock, MapPin, Phone, Mail, Calendar, Coffee } from 'lucide-react';
+import { useStoreTimingStore } from '../../store/useStoreTimingStore';
 import GlassCard from '../common/GlassCard';
 
 const Footer = () => {
+  const { liveStatus, settings } = useStoreTimingStore();
   return (
     <footer style={{ marginTop: '60px', paddingBottom: '30px' }}>
       <GlassCard hover={false} style={{ padding: '36px 32px' }}>
@@ -34,20 +36,53 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Support */}
+          {/* Store Hours: Starting Time & Closing Time */}
+          <div>
+            <h4 style={{ fontSize: '0.95rem', marginBottom: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={16} color="var(--primary-blue)" /> Store Timings
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={14} color="var(--status-success)" />
+                <span><strong>Starting Time:</strong> {liveStatus?.formattedOpen || '8:30 AM'}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={14} color="var(--status-danger)" />
+                <span><strong>Closing Time:</strong> {liveStatus?.formattedClose || '5:30 PM'}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Coffee size={14} color="#d97706" />
+                <span><strong>Lunch Break:</strong> {liveStatus?.formattedLunchInterval || '1:00 PM – 2:00 PM'}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={14} color="var(--primary-purple)" />
+                <span><strong>Working Days:</strong> {liveStatus?.workingDays || 'Monday – Saturday'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* College Support & Contact */}
           <div>
             <h4 style={{ fontSize: '0.95rem', marginBottom: '16px', color: 'var(--text-main)' }}>College Support</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <span>Central Co-op Store, Block A</span>
-              <span>Email: support@necstore.com</span>
-              <span>Helpline: +91 (044) 2890-1122</span>
-              <span>Mon - Sat: 8:30 AM - 5:30 PM</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MapPin size={14} color="var(--primary-blue)" />
+                <span>Central Co-op Store, Block A</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Mail size={14} color="var(--primary-blue)" />
+                <span>support@necstore.com</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Phone size={14} color="var(--primary-blue)" />
+                <span>+91 (044) 2890-1122</span>
+              </div>
             </div>
           </div>
         </div>
 
         <div style={{ paddingTop: '20px', borderTop: '1px solid var(--neu-border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '0.8rem', color: 'var(--text-subtle)' }}>
-          <div>� 2026 NEC Store. All rights reserved.</div>
+          <div>© 2026 NEC Store. All rights reserved.</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ShieldCheck size={16} color="var(--primary-blue)" /> Verified Razorpay Payment Gateway & TLS Security
           </div>

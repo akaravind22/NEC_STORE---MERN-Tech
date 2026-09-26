@@ -17,6 +17,7 @@ const notificationRoutes = require('./src/routes/notificationRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const reportRoutes = require('./src/routes/reportRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
+const storeSettingRoutes = require('./src/routes/storeSettingRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -63,6 +64,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/store-settings', storeSettingRoutes);
 
 // Error Handler
 app.use(errorHandler);

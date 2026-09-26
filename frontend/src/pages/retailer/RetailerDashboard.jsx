@@ -3,6 +3,7 @@ import { Package, Layers, ShoppingBag, TrendingUp, AlertTriangle, Clock } from '
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import GlassCard from '../../components/common/GlassCard';
 import Sidebar from '../../components/layout/Sidebar';
+import StoreTimingManager from '../../components/retailer/StoreTimingManager';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'];
@@ -39,6 +40,9 @@ const RetailerDashboard = () => {
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '28px' }}>
           Real-time store metrics, inventory levels, sales revenue, and customer orders.
         </p>
+
+        {/* Store Timings & Operational Controls */}
+        <StoreTimingManager />
 
         {loading ? (
           <div className="skeleton" style={{ height: '300px', width: '100%', borderRadius: '24px' }}></div>

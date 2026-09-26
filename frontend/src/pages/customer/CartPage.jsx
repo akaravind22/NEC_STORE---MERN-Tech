@@ -5,10 +5,13 @@ import GlassCard from '../../components/common/GlassCard';
 import GlassButton from '../../components/common/GlassButton';
 import EmptyState from '../../components/common/EmptyState';
 import { useCartStore } from '../../store/useCartStore';
+import { useStoreTimingStore } from '../../store/useStoreTimingStore';
+import { Coffee, AlertCircle } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
 const CartPage = () => {
+  const { liveStatus } = useStoreTimingStore();
   const { cart, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCartStore();
   const navigate = useNavigate();
 

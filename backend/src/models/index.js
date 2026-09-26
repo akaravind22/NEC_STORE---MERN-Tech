@@ -298,6 +298,53 @@ const Notification = sequelize.define('Notification', {
   }
 }, { tableName: 'notifications', timestamps: true });
 
+
+// StoreSetting Model (Configured by Retailer & Admin)
+const StoreSetting = sequelize.define('StoreSetting', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  status: {
+    type: DataTypes.ENUM('AUTO', 'OPEN', 'LUNCH_BREAK', 'TEMPORARILY_CLOSED', 'CLOSED'),
+    defaultValue: 'AUTO'
+  },
+  statusMessage: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: ''
+  },
+  openTime: {
+    type: DataTypes.STRING(5),
+    defaultValue: '08:30'
+  },
+  closeTime: {
+    type: DataTypes.STRING(5),
+    defaultValue: '17:30'
+  },
+  lunchStart: {
+    type: DataTypes.STRING(5),
+    defaultValue: '13:00'
+  },
+  lunchEnd: {
+    type: DataTypes.STRING(5),
+    defaultValue: '14:00'
+  },
+  workingDays: {
+    type: DataTypes.STRING,
+    defaultValue: 'Monday – Saturday'
+  },
+  allowOrdersWhenClosed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  updatedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  }
+}, { tableName: 'store_settings', timestamps: true });
+
 // Associations
 Category.hasMany(Product, { foreignKey: 'categoryId' });
 Product.belongsTo(Category, { foreignKey: 'categoryId' });
@@ -325,6 +372,7 @@ StockHistory.belongsTo(User, { foreignKey: 'retailerId', as: 'retailer' });
 
 User.hasMany(Notification, { foreignKey: 'userId' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
+StoreSetting.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 
 module.exports = {
   sequelize,
@@ -336,5 +384,6 @@ module.exports = {
   OrderItem,
   Transaction,
   StockHistory,
-  Notification
+  Notification,
+  StoreSetting
 };
