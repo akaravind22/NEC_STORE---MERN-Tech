@@ -28,7 +28,7 @@ const Navbar = () => {
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
-            boxShadow: '0 8px 16px rgba(37, 99, 235, 0.3)'
+            boxShadow: '4px 4px 10px rgba(37, 99, 235, 0.35), -3px -3px 8px var(--neu-shadow-light)'
           }}
         >
           <Store size={22} />
@@ -43,18 +43,20 @@ const Navbar = () => {
         </div>
       </Link>
 
-      {/* Center Navigation Links */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Center Navigation Links (Neumorphic Pills) */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <Link
           to="/"
           style={{
-            padding: '8px 16px',
+            padding: '8px 18px',
             borderRadius: '9999px',
             fontSize: '0.9rem',
             fontWeight: 600,
             textDecoration: 'none',
             color: isActive('/') ? 'var(--primary-blue)' : 'var(--text-muted)',
-            background: isActive('/') ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+            background: 'var(--card-bg)',
+            boxShadow: isActive('/') ? 'var(--neu-pressed-sm)' : 'var(--neu-extruded-sm)',
+            border: '1px solid var(--neu-border)',
             transition: 'all 200ms ease'
           }}
         >
@@ -63,13 +65,15 @@ const Navbar = () => {
         <Link
           to="/customer/products"
           style={{
-            padding: '8px 16px',
+            padding: '8px 18px',
             borderRadius: '9999px',
             fontSize: '0.9rem',
             fontWeight: 600,
             textDecoration: 'none',
             color: isActive('/customer/products') ? 'var(--primary-blue)' : 'var(--text-muted)',
-            background: isActive('/customer/products') ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+            background: 'var(--card-bg)',
+            boxShadow: isActive('/customer/products') ? 'var(--neu-pressed-sm)' : 'var(--neu-extruded-sm)',
+            border: '1px solid var(--neu-border)',
             transition: 'all 200ms ease'
           }}
         >
@@ -79,13 +83,15 @@ const Navbar = () => {
           <Link
             to="/customer/orders"
             style={{
-              padding: '8px 16px',
+              padding: '8px 18px',
               borderRadius: '9999px',
               fontSize: '0.9rem',
               fontWeight: 600,
               textDecoration: 'none',
               color: isActive('/customer/orders') ? 'var(--primary-blue)' : 'var(--text-muted)',
-              background: isActive('/customer/orders') ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+              background: 'var(--card-bg)',
+              boxShadow: isActive('/customer/orders') ? 'var(--neu-pressed-sm)' : 'var(--neu-extruded-sm)',
+              border: '1px solid var(--neu-border)',
               transition: 'all 200ms ease'
             }}
           >
@@ -100,12 +106,14 @@ const Navbar = () => {
         <button
           onClick={toggleTheme}
           title="Toggle Dark/Light Mode"
+          className="neu-circle-btn"
           style={{
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '50%',
             width: '40px',
             height: '40px',
+            borderRadius: '50%',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--neu-border)',
+            boxShadow: 'var(--neu-extruded-sm)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -123,13 +131,15 @@ const Navbar = () => {
         {isAuthenticated && (
           <Link
             to="/customer/cart"
+            className="neu-circle-btn"
             style={{
               position: 'relative',
-              background: 'var(--glass-bg)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '50%',
               width: '40px',
               height: '40px',
+              borderRadius: '50%',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--neu-border)',
+              boxShadow: 'var(--neu-extruded-sm)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -179,19 +189,21 @@ const Navbar = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '6px 14px',
+                padding: '7px 16px',
                 borderRadius: '9999px',
-                background: 'var(--glass-bg)',
-                border: '1px solid var(--glass-border)',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--neu-border)',
+                boxShadow: 'var(--neu-extruded-sm)',
                 textDecoration: 'none',
                 color: 'var(--text-main)',
                 fontSize: '0.85rem',
-                fontWeight: 600
+                fontWeight: 600,
+                transition: 'all 200ms ease'
               }}
             >
               <User size={16} color="var(--primary-blue)" />
               <span>{user?.name.split(' ')[0]}</span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--primary-purple)', background: 'rgba(124, 58, 237, 0.1)', padding: '2px 6px', borderRadius: '8px' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--primary-purple)', background: 'rgba(124, 58, 237, 0.1)', padding: '2px 8px', borderRadius: '8px', fontWeight: 700 }}>
                 {user?.role}
               </span>
             </Link>
@@ -201,12 +213,14 @@ const Navbar = () => {
                 navigate('/login');
               }}
               title="Logout"
+              className="neu-circle-btn"
               style={{
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
                 borderRadius: '50%',
                 width: '38px',
                 height: '38px',
+                background: 'var(--card-bg)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                boxShadow: 'var(--neu-extruded-sm)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

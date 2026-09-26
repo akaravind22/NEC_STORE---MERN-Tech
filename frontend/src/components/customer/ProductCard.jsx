@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Check, AlertCircle } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import GlassButton from '../common/GlassButton';
 import { useCartStore } from '../../store/useCartStore';
@@ -20,14 +20,14 @@ const ProductCard = ({ product }) => {
   const isLowStock = product.quantity > 0 && product.quantity <= product.lowStockThreshold;
 
   return (
-    <GlassCard style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <GlassCard style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '20px' }}>
       {/* Image Header */}
       <div style={{ position: 'relative', width: '100%', height: '200px', overflow: 'hidden', borderRadius: '18px 18px 0 0' }}>
         <img
           src={product.image || 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=80'}
           alt={product.name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 300ms ease' }}
-          onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         />
 
@@ -37,14 +37,16 @@ const ProductCard = ({ product }) => {
             position: 'absolute',
             top: '12px',
             left: '12px',
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(8px)',
-            color: '#fff',
-            fontSize: '0.75rem',
-            fontWeight: 700,
+            background: 'var(--card-bg)',
+            color: 'var(--text-main)',
+            boxShadow: 'var(--neu-extruded-sm)',
+            border: '1px solid var(--neu-border)',
+            fontSize: '0.72rem',
+            fontWeight: 800,
             padding: '4px 10px',
             borderRadius: '9999px',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em'
           }}
         >
           {product.Category ? product.Category.name : 'Stationery'}
@@ -57,13 +59,13 @@ const ProductCard = ({ product }) => {
             top: '12px',
             right: '12px',
             background: isOutOfStock
-              ? 'rgba(239, 68, 68, 0.85)'
+              ? 'rgba(239, 68, 68, 0.9)'
               : isLowStock
-              ? 'rgba(245, 158, 11, 0.85)'
-              : 'rgba(16, 185, 129, 0.85)',
-            backdropFilter: 'blur(8px)',
+              ? 'rgba(245, 158, 11, 0.9)'
+              : 'rgba(16, 185, 129, 0.9)',
             color: '#fff',
-            fontSize: '0.75rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            fontSize: '0.72rem',
             fontWeight: 800,
             padding: '4px 10px',
             borderRadius: '9999px'
@@ -93,7 +95,7 @@ const ProductCard = ({ product }) => {
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '14px' }}>
             <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-blue)' }}>
-              ₹{parseFloat(product.sellingPrice).toFixed(2)}
+              ?{parseFloat(product.sellingPrice).toFixed(2)}
             </span>
           </div>
 
@@ -105,7 +107,7 @@ const ProductCard = ({ product }) => {
               icon={ShoppingCart}
               onClick={handleAddToCart}
               className="w-full"
-              style={{ width: '100%' }}
+              style={{ width: '100%', fontWeight: 700 }}
             >
               {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
             </GlassButton>

@@ -66,7 +66,7 @@ const Sidebar = () => {
     >
       <div>
         {/* Brand */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', marginBottom: '28px', paddingLeft: '8px' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', marginBottom: '26px', paddingLeft: '8px' }}>
           <div
             style={{
               width: '42px',
@@ -77,7 +77,7 @@ const Sidebar = () => {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#fff',
-              boxShadow: '0 8px 16px rgba(124, 58, 237, 0.3)'
+              boxShadow: '4px 4px 12px rgba(124, 58, 237, 0.35), -3px -3px 8px var(--neu-shadow-light)'
             }}
           >
             <Store size={22} />
@@ -92,13 +92,14 @@ const Sidebar = () => {
           </div>
         </Link>
 
-        {/* User Card */}
+        {/* User Card (Neumorphic Inset) */}
         <div
           style={{
             padding: '12px 14px',
             borderRadius: '16px',
-            background: 'rgba(255, 255, 255, 0.3)',
-            border: '1px solid var(--glass-border-subtle)',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--neu-border-subtle)',
+            boxShadow: 'var(--neu-pressed-sm)',
             marginBottom: '24px',
             display: 'flex',
             alignItems: 'center',
@@ -113,7 +114,7 @@ const Sidebar = () => {
         </div>
 
         {/* Navigation Items */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {items.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -125,15 +126,30 @@ const Sidebar = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '12px 16px',
+                  padding: '11px 16px',
                   borderRadius: '14px',
                   fontSize: '0.9rem',
                   fontWeight: 600,
                   textDecoration: 'none',
                   color: active ? '#ffffff' : 'var(--text-muted)',
                   background: active ? 'var(--gradient-primary)' : 'transparent',
-                  boxShadow: active ? '0 8px 20px -4px rgba(37, 99, 235, 0.4)' : 'none',
+                  boxShadow: active
+                    ? '4px 4px 12px rgba(37, 99, 235, 0.35), -2px -2px 8px var(--neu-shadow-light)'
+                    : 'none',
+                  border: active ? 'none' : '1px solid transparent',
                   transition: 'all 200ms ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.boxShadow = 'var(--neu-extruded-sm)';
+                    e.currentTarget.style.borderColor = 'var(--neu-border)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = 'transparent';
+                  }
                 }}
               >
                 <Icon size={18} />
@@ -145,7 +161,7 @@ const Sidebar = () => {
       </div>
 
       {/* Bottom Controls */}
-      <div style={{ paddingTop: '20px', borderTop: '1px solid var(--glass-border-subtle)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ paddingTop: '20px', borderTop: '1px solid var(--neu-border-subtle)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <button
           onClick={toggleTheme}
           style={{
@@ -154,12 +170,14 @@ const Sidebar = () => {
             gap: '12px',
             padding: '10px 16px',
             borderRadius: '14px',
-            background: 'transparent',
-            border: 'none',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--neu-border)',
+            boxShadow: 'var(--neu-extruded-sm)',
             fontSize: '0.85rem',
             fontWeight: 600,
             color: 'var(--text-muted)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 200ms ease'
           }}
         >
           {theme === 'dark' ? <Sun size={18} color="#f59e0b" /> : <Moon size={18} color="#6366f1" />}
@@ -177,12 +195,14 @@ const Sidebar = () => {
             gap: '12px',
             padding: '10px 16px',
             borderRadius: '14px',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
+            background: 'var(--card-bg)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            boxShadow: 'var(--neu-extruded-sm)',
             fontSize: '0.85rem',
             fontWeight: 700,
             color: 'var(--status-danger)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 200ms ease'
           }}
         >
           <LogOut size={18} />

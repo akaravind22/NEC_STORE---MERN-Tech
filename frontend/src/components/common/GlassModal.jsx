@@ -21,7 +21,8 @@ const GlassModal = ({ isOpen, onClose, title, children, maxWidth = '550px' }) =>
         left: 0,
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'rgba(15, 23, 42, 0.5)',
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        backdropFilter: 'blur(4px)',
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
@@ -35,7 +36,7 @@ const GlassModal = ({ isOpen, onClose, title, children, maxWidth = '550px' }) =>
         style={{ width: '100%', maxWidth }}
         onClick={(e) => e.stopPropagation()}
       >
-        <GlassCard hover={false} style={{ padding: '24px' }}>
+        <GlassCard hover={false} style={{ padding: '26px' }}>
           <div
             style={{
               display: 'flex',
@@ -43,27 +44,29 @@ const GlassModal = ({ isOpen, onClose, title, children, maxWidth = '550px' }) =>
               justifyContent: 'space-between',
               marginBottom: '20px',
               paddingBottom: '12px',
-              borderBottom: '1px solid var(--glass-border-subtle)'
+              borderBottom: '1px solid var(--neu-border-subtle)'
             }}
           >
-            <h3 style={{ fontSize: '1.25rem', margin: 0 }}>{title}</h3>
+            <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 700 }}>{title}</h3>
             <button
               onClick={onClose}
+              className="neu-circle-btn"
               style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: 'none',
-                borderRadius: '50%',
                 width: '32px',
                 height: '32px',
+                borderRadius: '50%',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--neu-border-subtle)',
+                boxShadow: 'var(--neu-extruded-sm)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--text-muted)',
                 cursor: 'pointer',
-                transition: 'all 200ms ease'
+                transition: 'all 180ms ease'
               }}
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
           <div>{children}</div>

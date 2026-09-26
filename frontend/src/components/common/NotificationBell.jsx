@@ -72,23 +72,24 @@ const NotificationBell = ({ placement = 'right' }) => {
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        className="neu-circle-btn"
         style={{
           position: 'relative',
-          background: 'var(--glass-bg)',
-          border: '1px solid var(--glass-border)',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--neu-border)',
           borderRadius: '50%',
-          width: '42px',
-          height: '42px',
+          width: '40px',
+          height: '40px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--text-main)',
           cursor: 'pointer',
-          backdropFilter: 'var(--glass-blur)',
+          boxShadow: 'var(--neu-extruded-sm)',
           transition: 'all 200ms ease'
         }}
       >
-        <Bell size={20} />
+        <Bell size={19} />
         {unreadCount > 0 && (
           <span
             style={{
@@ -129,7 +130,7 @@ const NotificationBell = ({ placement = 'right' }) => {
             <div
               style={{
                 padding: '14px 18px',
-                borderBottom: '1px solid var(--glass-border-subtle)',
+                borderBottom: '1px solid var(--neu-border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between'
@@ -169,7 +170,7 @@ const NotificationBell = ({ placement = 'right' }) => {
                     key={n.id}
                     style={{
                       padding: '12px 16px',
-                      borderBottom: '1px solid var(--glass-border-subtle)',
+                      borderBottom: '1px solid var(--neu-border-subtle)',
                       background: n.isRead ? 'transparent' : 'rgba(56, 189, 248, 0.08)',
                       display: 'flex',
                       gap: '12px',
@@ -190,11 +191,12 @@ const NotificationBell = ({ placement = 'right' }) => {
                         onClick={(e) => handleMarkAsRead(n.id, e)}
                         title="Mark as read"
                         style={{
-                          background: 'rgba(255,255,255,0.2)',
-                          border: 'none',
+                          background: 'var(--card-bg)',
+                          border: '1px solid var(--neu-border-subtle)',
+                          boxShadow: 'var(--neu-extruded-sm)',
                           borderRadius: '50%',
-                          width: '24px',
-                          height: '24px',
+                          width: '26px',
+                          height: '26px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
