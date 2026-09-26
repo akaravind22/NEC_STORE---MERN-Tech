@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Store } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import GlassButton from '../common/GlassButton';
 import { useCartStore } from '../../store/useCartStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCartStore();
+  const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   const handleAddToCart = () => {
@@ -93,25 +95,44 @@ const ProductCard = ({ product }) => {
 
         {/* Footer Price & Add Button */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: (isAuthenticated && user?.role === 'CUSTOMER') ? '14px' : '0px' }}>
             <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-blue)' }}>
               ₹{parseFloat(product.sellingPrice).toFixed(2)}
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <GlassButton
-              variant="primary"
-              size="sm"
-              disabled={isOutOfStock}
-              icon={ShoppingCart}
-              onClick={handleAddToCart}
-              className="w-full"
-              style={{ width: '100%', fontWeight: 700 }}
-            >
-              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-            </GlassButton>
-          </div>
+          {/* Only show Add to Cart when logged in as Student / Customer */}
+          {isAuthenticated && user?.role === 'CUSTOMER' && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <GlassButton
+                variant="primary"
+                size="sm"
+                disabled={isOutOfStock}
+                icon={ShoppingCart}
+                onClick={handleAddToCart}
+                className="w-full"
+                style={{ width: '100%', fontWeight: 700 }}
+              >
+                {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+              </GlassButton>
+            </div>
+          )}
+
+          {/* If Retailer is browsing products, show link to retailer management */}
+          {isAuthenticated && user?.role === 'RETAILER' && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <Link to="/retailer/products" style={{ textDecoration: 'none', width: '100%' }}>
+                <GlassButton
+                  variant="secondary"
+                  size="sm"
+                  icon={Store}
+                  style={{ width: '100%', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  Manage in Stock
+                </GlassButton>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </GlassCard>
