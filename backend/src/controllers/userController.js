@@ -55,6 +55,81 @@ const getUserById = async (req, res, next) => {
   }
 };
 
+// Create Staff / Retailer / Admin user (Admin only)
+const createStaffUser = async (req, res, next) => {
+  try {
+    const { name, email, rollNumber, department, phone, role } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Full Name and Email Address are required.' });
+    }
+
+    if (!['RETAILER', 'ADMIN'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Staff role must be RETAILER or ADMIN.' });
+    }
+
+    const existingEmail = await User.findOne({ where: { email } });
+    if (existingEmail) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
+    }
+
+    if (rollNumber) {
+      const existingStaffId = await User.findOne({ where: { rollNumber } });
+      if (existingStaffId) {
+        return res.status(409).json({ success: false, message: 'An account with this Staff ID already exists.' });
+      }
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      rollNumber: rollNumber || null,
+      department: department || null,
+      phone: phone || null,
+      role,
+      status: 'ACTIVE'
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `${role === 'RETAILER' ? 'Retailer' : 'Administrator'} account created successfully for ${user.name}.`,
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Change user role (Admin only)
+const updateUserRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    if (!['CUSTOMER', 'RETAILER', 'ADMIN'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role provided.' });
+    }
+
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    if (user.role === 'ADMIN' && req.user.id === user.id && role !== 'ADMIN') {
+      return res.status(400).json({ success: false, message: 'You cannot revoke your own admin role.' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `User role has been updated to ${role}.`,
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Suspend or Activate user status (Admin only)
 const updateUserStatus = async (req, res, next) => {
   try {
@@ -88,5 +163,7 @@ const updateUserStatus = async (req, res, next) => {
 module.exports = {
   getAllUsers,
   getUserById,
+  createStaffUser,
+  updateUserRole,
   updateUserStatus
 };

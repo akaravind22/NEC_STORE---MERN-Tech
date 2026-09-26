@@ -3,10 +3,10 @@ const { User, OTPVerification, Notification } = require('../models');
 const { sendOTPEmail } = require('../utils/mailer');
 const { Op } = require('sequelize');
 
-// Register user (Customer, Retailer, or Admin)
+// Register student / customer (Public registration strictly assigns CUSTOMER role)
 const register = async (req, res, next) => {
   try {
-    const { name, email, rollNumber, department, phone, role } = req.body;
+    const { name, email, rollNumber, department, phone } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ success: false, message: 'Name and Email are required.' });
@@ -18,42 +18,39 @@ const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
     }
 
-    // Validate role: Allow CUSTOMER, RETAILER, or ADMIN (default to CUSTOMER)
-    const validRoles = ['CUSTOMER', 'RETAILER', 'ADMIN'];
-    const assignedRole = validRoles.includes(role?.toUpperCase()) ? role.toUpperCase() : 'CUSTOMER';
-
-    // Check duplicate roll number / staff ID if provided
+    // Check duplicate roll number if provided
     if (rollNumber) {
       const existingRoll = await User.findOne({ where: { rollNumber } });
       if (existingRoll) {
         return res.status(409).json({
           success: false,
-          message: `An account with this ${assignedRole === 'CUSTOMER' ? 'Roll Number' : 'Staff ID'} already exists.`
+          message: 'An account with this Student Roll Number already exists.'
         });
       }
     }
 
+    // Securely hardcode role to CUSTOMER - public registrations cannot create Retailer/Admin
     const user = await User.create({
       name,
       email,
       rollNumber: rollNumber || null,
       department: department || null,
       phone: phone || null,
-      role: assignedRole,
+      role: 'CUSTOMER',
       status: 'ACTIVE'
     });
 
-    // Notify Admin of new registration
+    // Notify Admin of new student registration
     await Notification.create({
       userId: null, // Broadcast to admins
-      title: `New ${assignedRole === 'RETAILER' ? 'Retailer' : assignedRole === 'ADMIN' ? 'Admin' : 'Customer'} Registered`,
-      message: `New ${assignedRole.toLowerCase()} account created for ${user.name} (${user.email}).`,
+      title: 'New Student Registered',
+      message: `New student account created for ${user.name} (${user.email}).`,
       type: 'USER_REGISTERED'
     });
 
     return res.status(201).json({
       success: true,
-      message: `Registration successful! You can now log in to your ${assignedRole.toLowerCase()} account with your email OTP.`,
+      message: 'Student registration successful! You can now log in with your email OTP.',
       data: {
         id: user.id,
         name: user.name,
