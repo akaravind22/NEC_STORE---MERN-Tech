@@ -10,9 +10,29 @@ const getNotifications = async (req, res, next) => {
     let whereClause = {};
 
     if (role === 'CUSTOMER') {
+      // Customer only sees notifications sent to their own userId
       whereClause = { userId };
+    } else if (role === 'RETAILER') {
+      // Retailer sees store-related notifications (orders, stock, etc.),
+      // but NOT student/user registration alerts (which are meant only for Admin)
+      whereClause = {
+        [Op.or]: [
+          { userId },
+          {
+            userId: null,
+            type: { [Op.notIn]: ['USER_REGISTERED', 'STUDENT_REGISTERED'] },
+            title: {
+              [Op.and]: [
+                { [Op.notLike]: '%Student Registered%' },
+                { [Op.notLike]: '%Customer Registered%' },
+                { [Op.notLike]: '%Retailer Registered%' }
+              ]
+            }
+          }
+        ]
+      };
     } else {
-      // Admin and Retailer see notifications assigned to them or broadcast notifications (userId null)
+      // Admin sees everything (assigned to them, broadcast notifications, and all user registrations)
       whereClause = {
         [Op.or]: [
           { userId },
@@ -66,9 +86,34 @@ const markAllAsRead = async (req, res, next) => {
     const userId = req.user.id;
     const role = req.user.role;
 
-    let whereClause = role === 'CUSTOMER' 
-      ? { userId, isRead: false }
-      : { [Op.or]: [{ userId }, { userId: null }], isRead: false };
+    let whereClause = {};
+
+    if (role === 'CUSTOMER') {
+      whereClause = { userId, isRead: false };
+    } else if (role === 'RETAILER') {
+      whereClause = {
+        [Op.or]: [
+          { userId },
+          {
+            userId: null,
+            type: { [Op.notIn]: ['USER_REGISTERED', 'STUDENT_REGISTERED'] },
+            title: {
+              [Op.and]: [
+                { [Op.notLike]: '%Student Registered%' },
+                { [Op.notLike]: '%Customer Registered%' },
+                { [Op.notLike]: '%Retailer Registered%' }
+              ]
+            }
+          }
+        ],
+        isRead: false
+      };
+    } else {
+      whereClause = {
+        [Op.or]: [{ userId }, { userId: null }],
+        isRead: false
+      };
+    }
 
     await Notification.update({ isRead: true }, { where: whereClause });
 

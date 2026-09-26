@@ -7,6 +7,7 @@
   --card-bg-hover: #ebf1f8;
   --primary-blue: #2563eb;
   --primary-purple: #7c3aed;
+  --primary-cyan: #06b6d4;
   --status-success: #16a34a;
   --status-warning: #d97706;
   --status-danger: #dc2626;
@@ -55,6 +56,7 @@
   --card-bg-hover: #1e232a;
   --primary-blue: #38bdf8;
   --primary-purple: #a855f7;
+  --primary-cyan: #22d3ee;
 
   --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   --gradient-secondary: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);

@@ -60,21 +60,13 @@ export const useStoreTimingStore = create((set, get) => ({
           liveStatus: res.data.liveStatus,
           loading: false
         });
-        useToastStore.getState().addToast({
-          type: 'success',
-          title: 'Store Timings Updated',
-          message: 'Campus operating schedule and operational status saved successfully.'
-        });
+        useToastStore.getState().addToast('Campus operating schedule and operational status saved successfully.', 'success');
         return { success: true };
       }
     } catch (err) {
       set({ loading: false });
       const msg = err.response?.data?.message || 'Failed to update store timings.';
-      useToastStore.getState().addToast({
-        type: 'danger',
-        title: 'Update Error',
-        message: msg
-      });
+      useToastStore.getState().addToast(msg, 'error');
       return { success: false, message: msg };
     }
   },
@@ -91,20 +83,12 @@ export const useStoreTimingStore = create((set, get) => ({
           settings: res.data.settings,
           liveStatus: res.data.liveStatus
         });
-        useToastStore.getState().addToast({
-          type: 'success',
-          title: 'Store Status Changed',
-          message: res.data.message
-        });
+        useToastStore.getState().addToast(res.data.message || 'Store status changed.', 'success');
         return { success: true };
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to update status.';
-      useToastStore.getState().addToast({
-        type: 'danger',
-        title: 'Status Update Error',
-        message: msg
-      });
+      useToastStore.getState().addToast(msg, 'error');
       return { success: false, message: msg };
     }
   }

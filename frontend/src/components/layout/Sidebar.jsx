@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Clock,
   Package,
   Layers,
   ShoppingBag,
@@ -27,8 +28,9 @@ const Sidebar = () => {
   const isRetailer = user?.role === 'RETAILER';
   const isAdmin = user?.role === 'ADMIN';
 
-  const retailerNav = [
+    const retailerNav = [
     { label: 'Dashboard', path: '/retailer', icon: LayoutDashboard },
+    { label: 'Store Timings', path: '/retailer/timings', icon: Clock },
     { label: 'Products', path: '/retailer/products', icon: Package },
     { label: 'Inventory Stock', path: '/retailer/stock', icon: Layers },
     { label: 'Customer Orders', path: '/retailer/orders', icon: ShoppingBag },
@@ -39,8 +41,9 @@ const Sidebar = () => {
     { label: 'My Profile', path: '/retailer/profile', icon: User }
   ];
 
-  const adminNav = [
+    const adminNav = [
     { label: 'Admin Dashboard', path: '/admin', icon: LayoutDashboard },
+    { label: 'Store Timings', path: '/admin/timings', icon: Clock },
     { label: 'User Management', path: '/admin/users', icon: Users },
     { label: 'Notifications', path: '/admin/notifications', icon: Bell },
     { label: 'My Profile', path: '/admin/profile', icon: User }

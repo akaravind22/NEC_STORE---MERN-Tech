@@ -315,20 +315,16 @@ const StoreSetting = sequelize.define('StoreSetting', {
     allowNull: true,
     defaultValue: ''
   },
-  openTime: {
-    type: DataTypes.STRING(5),
+  openTime: { type: DataTypes.STRING(50),
     defaultValue: '08:30'
   },
-  closeTime: {
-    type: DataTypes.STRING(5),
+  closeTime: { type: DataTypes.STRING(50),
     defaultValue: '17:30'
   },
-  lunchStart: {
-    type: DataTypes.STRING(5),
+  lunchStart: { type: DataTypes.STRING(50),
     defaultValue: '13:00'
   },
-  lunchEnd: {
-    type: DataTypes.STRING(5),
+  lunchEnd: { type: DataTypes.STRING(50),
     defaultValue: '14:00'
   },
   workingDays: {

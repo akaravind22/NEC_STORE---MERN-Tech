@@ -10,8 +10,13 @@ import { useAuthStore } from '../../store/useAuthStore';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { getAxios, user } = useAuthStore();
+
+  // Retailers only see store operational alerts (orders, inventory), not student registrations
+  const displayNotifications = user?.role === 'RETAILER'
+    ? notifications.filter(n => n.type !== 'USER_REGISTERED' && !n.title?.includes('Student Registered') && !n.title?.includes('Customer Registered') && !n.title?.includes('Retailer Registered'))
+    : notifications;
+  const [loading, setLoading] = useState(true);
 
   const isRetailerOrAdmin = user?.role === 'RETAILER' || user?.role === 'ADMIN';
 
@@ -67,7 +72,7 @@ const NotificationsPage = () => {
 
       {loading ? (
         <div className="skeleton" style={{ height: '300px', width: '100%', borderRadius: '24px' }}></div>
-      ) : notifications.length === 0 ? (
+      ) : displayNotifications.length === 0 ? (
         <EmptyState
           icon={Bell}
           title="No Notifications"
@@ -76,7 +81,7 @@ const NotificationsPage = () => {
       ) : (
         <GlassCard hover={false} style={{ padding: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {notifications.map((n) => (
+            {displayNotifications.map((n) => (
               <div
                 key={n.id}
                 style={{

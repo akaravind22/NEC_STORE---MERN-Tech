@@ -30,6 +30,7 @@ import OrderListPage from './pages/retailer/OrderListPage';
 import SalesAnalyticsPage from './pages/retailer/SalesAnalyticsPage';
 import TransactionsPage from './pages/retailer/TransactionsPage';
 import ReportsPage from './pages/retailer/ReportsPage';
+import StoreTimingsPage from './pages/retailer/StoreTimingsPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -216,6 +217,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+                <Route
+          path="/retailer/timings"
+          element={
+            <ProtectedRoute allowedRoles={['RETAILER', 'ADMIN']}>
+              <StoreTimingsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/retailer/profile"
           element={
@@ -247,6 +256,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+                <Route
+          path="/admin/timings"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <StoreTimingsPage />
             </ProtectedRoute>
           }
         />

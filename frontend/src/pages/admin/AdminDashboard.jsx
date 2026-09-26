@@ -2,7 +2,6 @@
 import { Users, ShoppingBag, Package, TrendingUp, AlertTriangle, UserCheck, Shield, Clock } from 'lucide-react';
 import GlassCard from '../../components/common/GlassCard';
 import Sidebar from '../../components/layout/Sidebar';
-import StoreTimingManager from '../../components/retailer/StoreTimingManager';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const AdminDashboard = () => {
@@ -36,8 +35,6 @@ const AdminDashboard = () => {
           Overview of total registered users, customer/retailer accounts, store orders, and gross platform sales.
         </p>
 
-        {/* Store Timings & Operational Controls */}
-        <StoreTimingManager />
 
         {loading ? (
           <div className="skeleton" style={{ height: '300px', width: '100%', borderRadius: '24px' }}></div>

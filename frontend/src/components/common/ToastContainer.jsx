@@ -8,7 +8,8 @@ const ToastContainer = () => {
   const getIcon = (type) => {
     switch (type) {
       case 'success': return <CheckCircle2 size={20} color="#10b981" />;
-      case 'error': return <AlertCircle size={20} color="#ef4444" />;
+      case 'error':
+      case 'danger': return <AlertCircle size={20} color="#ef4444" />;
       case 'warning': return <AlertTriangle size={20} color="#f59e0b" />;
       default: return <Info size={20} color="#3b82f6" />;
     }
@@ -19,7 +20,9 @@ const ToastContainer = () => {
       {toasts.map((t) => (
         <div key={t.id} className="glass-toast">
           {getIcon(t.type)}
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', flex: 1 }}>{t.message}</span>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', flex: 1 }}>
+            {typeof t.message === 'string' ? t.message : (t.message?.message || JSON.stringify(t.message))}
+          </span>
           <button
             onClick={() => removeToast(t.id)}
             style={{

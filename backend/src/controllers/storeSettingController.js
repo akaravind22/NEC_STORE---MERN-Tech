@@ -1,22 +1,35 @@
 const { StoreSetting, User } = require('../models');
 
-// Helper to format "13:00" to "1:00 PM"
+// Helper to format any time string ("13:00", "01:00 PM", "9:00", "9:30 AM") to clean 12-hour format
 const format12Hour = (timeStr) => {
   if (!timeStr) return '';
-  const parts = timeStr.split(':');
+  const str = String(timeStr).trim();
+  if (/am|pm/i.test(str)) {
+    return str; // Already formatted with AM/PM
+  }
+  const parts = str.split(':');
   let h = parseInt(parts[0], 10);
-  const m = parts[1] || '00';
+  if (isNaN(h)) return str;
+  const m = (parts[1] || '00').padStart(2, '0');
   const ampm = h >= 12 ? 'PM' : 'AM';
   h = h % 12;
   if (h === 0) h = 12;
   return `${h}:${m} ${ampm}`;
 };
 
-// Convert "HH:mm" to minutes from midnight
+// Convert flexible time string to minutes from midnight
 const toMinutes = (timeStr) => {
   if (!timeStr) return 0;
-  const [h, m] = timeStr.split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
+  let str = String(timeStr).trim().toUpperCase();
+  const isPM = str.includes('PM');
+  const isAM = str.includes('AM');
+  const digits = str.replace(/[^\d:]/g, '');
+  const parts = digits.split(':').map(Number);
+  let h = parts[0] || 0;
+  const m = parts[1] || 0;
+  if (isPM && h < 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h * 60 + m;
 };
 
 // Calculate dynamic live status

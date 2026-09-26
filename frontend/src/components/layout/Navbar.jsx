@@ -39,14 +39,14 @@ const Navbar = () => {
         return {
           dotColor: '#d97706',
           pulseColor: 'rgba(217, 119, 6, 0.7)',
-          text: `🥪 Lunch Break (Back at ${liveStatus?.formattedLunchEnd || '2:00 PM'})`,
+          text: liveStatus?.message ? `🥪 ${liveStatus.message}` : `🥪 Lunch Break (Back at ${liveStatus?.formattedLunchEnd || '2:00 PM'})`,
           title: liveStatus?.message || 'Retailer is on lunch break'
         };
       case 'TEMPORARILY_CLOSED':
         return {
           dotColor: '#e11d48',
           pulseColor: 'rgba(225, 29, 72, 0.7)',
-          text: '⏸️ Away on Campus Work',
+          text: liveStatus?.message ? `⏸️ ${liveStatus.message}` : '⏸️ Away on Campus Work',
           title: liveStatus?.message || 'Retailer temporarily away'
         };
       case 'CLOSED':

@@ -7,7 +7,12 @@ const NotificationBell = ({ placement = 'right' }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const { getAxios, isAuthenticated } = useAuthStore();
+  const { getAxios, isAuthenticated, user } = useAuthStore();
+
+  const displayNotifications = user?.role === 'RETAILER'
+    ? notifications.filter(n => n.type !== 'USER_REGISTERED' && !n.title?.includes('Student Registered') && !n.title?.includes('Customer Registered') && !n.title?.includes('Retailer Registered'))
+    : notifications;
+  const activeUnreadCount = displayNotifications.filter(n => !n.isRead).length;
   const dropdownRef = useRef(null);
 
   const fetchNotifications = async () => {
@@ -90,7 +95,7 @@ const NotificationBell = ({ placement = 'right' }) => {
         }}
       >
         <Bell size={19} />
-        {unreadCount > 0 && (
+        {activeUnreadCount > 0 && (
           <span
             style={{
               position: 'absolute',
@@ -160,12 +165,12 @@ const NotificationBell = ({ placement = 'right' }) => {
             </div>
 
             <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
-              {notifications.length === 0 ? (
+              {displayNotifications.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   No notifications yet.
                 </div>
               ) : (
-                notifications.map((n) => (
+                displayNotifications.map((n) => (
                   <div
                     key={n.id}
                     style={{
