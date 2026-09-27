@@ -104,7 +104,7 @@ const Product = sequelize.define('Product', {
     allowNull: true
   },
   image: {
-    type: DataTypes.STRING(500),
+    type: DataTypes.TEXT('long'),
     allowNull: true
   },
   buyingPrice: {
