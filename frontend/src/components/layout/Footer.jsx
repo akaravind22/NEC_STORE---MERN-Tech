@@ -67,15 +67,15 @@ const Footer = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MapPin size={14} color="var(--primary-blue)" />
-                <span>Central Co-op Store, Block A</span>
+                <span>National Engineering College, Kovilpatti</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Mail size={14} color="var(--primary-blue)" />
-                <span>support@necstore.com</span>
+                <span>support@nec.edu.in</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Phone size={14} color="var(--primary-blue)" />
-                <span>+91 (044) 2890-1122</span>
+                <span>+91 1234567890</span>
               </div>
             </div>
           </div>

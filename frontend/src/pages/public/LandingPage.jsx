@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {ArrowRight, ShoppingBag, ShieldCheck, Zap, Layers, Store, Award, Clock, Calendar } from 'lucide-react';
+import { ArrowRight, ShoppingBag, ShieldCheck, Zap, Layers, Store, Award, Clock, Calendar } from 'lucide-react';
 import axios from 'axios';
 import GlassCard from '../../components/common/GlassCard';
 import GlassButton from '../../components/common/GlassButton';
@@ -49,7 +49,7 @@ const LandingPage = () => {
           <GlassCard hover={false} style={{ padding: '60px 40px', position: 'relative', overflow: 'hidden' }}>
             {/* Glowing Accent Shapes */}
             <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(56, 189, 248, 0.3) 0%, transparent 70%)', pointerEvents: 'none' }}></div>
-            
+
             <div style={{ maxWidth: '750px', position: 'relative', zIndex: 2 }}>
               <div
                 style={{
@@ -154,7 +154,7 @@ const LandingPage = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--text-muted)', background: 'var(--app-bg)', padding: '10px 18px', borderRadius: '12px', border: '1px solid var(--neu-border-subtle)', boxShadow: 'var(--neu-pressed-sm)' }}>
-                  <span>📍 Central Co-op Store, Block A</span>
+                  <span>📍 National Engineering College , Kovilpatti </span>
                   <span style={{ color: 'var(--primary-purple)', fontWeight: 600 }}>⚡ Dynamic Campus Timetable</span>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CreditCard, Search, X, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { CreditCard, Search, X, ArrowUpDown, ChevronUp, ChevronDown, Calendar } from 'lucide-react';
 import GlassCard from '../../components/common/GlassCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import CenteredPagination from '../../components/common/CenteredPagination';
@@ -15,6 +15,9 @@ const TransactionsPage = () => {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('ALL');
   const [sortKey, setSortKey] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
+
+  // Date filter - single day picker
+  const [selectedDate, setSelectedDate] = useState(''); // 'YYYY-MM-DD' string from <input type="date">
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,7 +68,7 @@ const TransactionsPage = () => {
   const filteredOrders = useMemo(() => {
     return orders
       .filter((o) => {
-        // Search
+        // Search filter
         if (search.trim()) {
           const q = search.toLowerCase();
           const txnRef = ('#txn-' + (o.id * 1024)).toLowerCase();
@@ -80,6 +83,12 @@ const TransactionsPage = () => {
         // Payment status filter
         if (paymentStatusFilter !== 'ALL' && o.paymentStatus !== paymentStatusFilter) {
           return false;
+        }
+
+        // Single date filter — compare only YYYY-MM-DD part of createdAt
+        if (selectedDate) {
+          const orderDateStr = new Date(o.createdAt).toLocaleDateString('en-CA'); // gives YYYY-MM-DD in local time
+          if (orderDateStr !== selectedDate) return false;
         }
 
         return true;
@@ -109,7 +118,7 @@ const TransactionsPage = () => {
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
-  }, [orders, search, paymentStatusFilter, sortKey, sortDirection]);
+  }, [orders, search, paymentStatusFilter, selectedDate, sortKey, sortDirection]);
 
   // Adjust page number if out of range
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
@@ -127,6 +136,7 @@ const TransactionsPage = () => {
   const handleClearFilters = () => {
     setSearch('');
     setPaymentStatusFilter('ALL');
+    setSelectedDate('');
     setSortKey('createdAt');
     setSortDirection('desc');
     setCurrentPage(1);
@@ -135,6 +145,7 @@ const TransactionsPage = () => {
   const isFilterActive =
     search.trim() !== '' ||
     paymentStatusFilter !== 'ALL' ||
+    selectedDate !== '' ||
     sortKey !== 'createdAt' ||
     sortDirection !== 'desc';
 
@@ -154,17 +165,15 @@ const TransactionsPage = () => {
         {/* Filter and Control Bar */}
         <GlassCard hover={false} style={{ padding: '20px', marginBottom: '22px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', alignItems: 'center' }}>
+
             {/* Search Input */}
             <div style={{ position: 'relative', gridColumn: 'span 2' }}>
               <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
-                placeholder="Search transactions by Txn ID, Order #, customer, or Razorpay ID..."
+                placeholder="Search by Txn ID, Order #, customer, or Razorpay ID..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 className="glass-input"
                 style={{ paddingLeft: '42px', width: '100%' }}
               />
@@ -172,17 +181,45 @@ const TransactionsPage = () => {
                 <button
                   onClick={() => setSearch('')}
                   style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-subtle)',
-                    cursor: 'pointer'
+                    position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'transparent', border: 'none', color: 'var(--text-subtle)', cursor: 'pointer'
                   }}
                 >
                   <X size={15} />
+                </button>
+              )}
+            </div>
+
+            {/* Date Picker — pick a single day */}
+            <div style={{ position: 'relative' }}>
+              <Calendar size={16} style={{
+                position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                color: selectedDate ? 'var(--primary-blue)' : 'var(--text-subtle)', pointerEvents: 'none', zIndex: 1
+              }} />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => { setSelectedDate(e.target.value); setCurrentPage(1); }}
+                className="glass-input"
+                title="Filter by exact date"
+                style={{
+                  paddingLeft: '38px',
+                  width: '100%',
+                  cursor: 'pointer',
+                  color: selectedDate ? 'var(--text-main)' : 'var(--text-muted)',
+                  borderColor: selectedDate ? 'var(--primary-blue)' : undefined
+                }}
+              />
+              {selectedDate && (
+                <button
+                  onClick={() => { setSelectedDate(''); setCurrentPage(1); }}
+                  title="Clear date"
+                  style={{
+                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'transparent', border: 'none', color: 'var(--status-danger)', cursor: 'pointer', zIndex: 2
+                  }}
+                >
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -191,10 +228,7 @@ const TransactionsPage = () => {
             <div>
               <select
                 value={paymentStatusFilter}
-                onChange={(e) => {
-                  setPaymentStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => { setPaymentStatusFilter(e.target.value); setCurrentPage(1); }}
                 className="glass-input"
                 style={{ width: '100%', cursor: 'pointer' }}
               >
@@ -210,7 +244,9 @@ const TransactionsPage = () => {
               <select
                 value={sortKey + '_' + sortDirection}
                 onChange={(e) => {
-                  const [key, dir] = e.target.value.split('_');
+                  const parts = e.target.value.split('_');
+                  const dir = parts.pop();
+                  const key = parts.join('_');
                   setSortKey(key);
                   setSortDirection(dir);
                   setCurrentPage(1);
@@ -229,24 +265,23 @@ const TransactionsPage = () => {
 
           {/* Quick Stats & Clear Filters */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--neu-border-subtle)', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', gap: '16px' }}>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               <span>Total Transactions: <strong style={{ color: 'var(--text-main)' }}>{orders.length}</strong></span>
               <span>Matched: <strong style={{ color: 'var(--primary-blue)' }}>{filteredOrders.length}</strong></span>
+              {selectedDate && (
+                <span style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>
+                  📅 Showing: {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              )}
             </div>
 
             {isFilterActive && (
               <button
                 onClick={handleClearFilters}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--status-danger)',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: 'transparent', border: 'none',
+                  color: 'var(--status-danger)', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer'
                 }}
               >
                 <X size={14} /> Clear all filters
@@ -262,41 +297,31 @@ const TransactionsPage = () => {
               <tr>
                 <th>Txn Ref ID</th>
                 <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    Order ID {renderSortIndicator('id')}
-                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Order ID {renderSortIndicator('id')}</div>
                 </th>
                 <th onClick={() => handleSort('customer')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    Customer {renderSortIndicator('customer')}
-                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Customer {renderSortIndicator('customer')}</div>
                 </th>
                 <th onClick={() => handleSort('totalAmount')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    Amount {renderSortIndicator('totalAmount')}
-                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Amount {renderSortIndicator('totalAmount')}</div>
                 </th>
                 <th>Method</th>
                 <th>Razorpay Payment ID</th>
                 <th>Payment Status</th>
                 <th onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    Date & Time {renderSortIndicator('createdAt')}
-                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Date &amp; Time {renderSortIndicator('createdAt')}</div>
                 </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    Loading transaction records...
-                  </td>
-                </tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>Loading transaction records...</td></tr>
               ) : paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    No payment transactions match your search criteria.
+                    {selectedDate
+                      ? `No transactions found on ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.`
+                      : 'No payment transactions match your search criteria.'}
                   </td>
                 </tr>
               ) : (

@@ -4,7 +4,7 @@ const { sequelize, Product, StockHistory, User, Notification, Category } = requi
 const addStock = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
-    const { productId, addedQuantity, newBuyingPrice } = req.body;
+    const { productId, addedQuantity, newBuyingPrice, newSellingPrice } = req.body;
     const retailerId = req.user.id;
 
     if (!productId || !addedQuantity || newBuyingPrice === undefined) {
@@ -31,15 +31,21 @@ const addStock = async (req, res, next) => {
     const prevBuyingPrice = parseFloat(product.buyingPrice);
     const newQty = prevQty + qtyToAdd;
 
-    // Weighted average price calculation:
-    // (Old Quantity * Old Buying Price + New Quantity * New Buying Price) / Total Quantity
-    const weightedAvgPrice = prevQty === 0 
-      ? unitBuyingPrice 
+    // Weighted Average Cost formula:
+    // (Old Qty * Old Price + New Qty * New Price) / Total Qty
+    const weightedAvgPrice = prevQty === 0
+      ? unitBuyingPrice
       : ((prevQty * prevBuyingPrice) + (qtyToAdd * unitBuyingPrice)) / newQty;
 
-    // Update Product Stock and Buying Price
+    // Update Product Stock and Buying Price (Weighted Average)
     product.quantity = newQty;
     product.buyingPrice = parseFloat(weightedAvgPrice.toFixed(2));
+
+    // Update selling price if a new one was provided
+    if (newSellingPrice !== undefined && parseFloat(newSellingPrice) > 0) {
+      product.sellingPrice = parseFloat(parseFloat(newSellingPrice).toFixed(2));
+    }
+
     await product.save({ transaction: t });
 
     // Store Stock History log
@@ -60,7 +66,7 @@ const addStock = async (req, res, next) => {
     await Notification.create({
       userId: null,
       title: 'Stock Replenished',
-      message: `${qtyToAdd} units added for "${product.name}". New stock: ${newQty}, Weighted Avg Price: ₹${weightedAvgPrice.toFixed(2)}.`,
+      message: `${qtyToAdd} units added for "${product.name}". New stock: ${newQty}, Weighted Avg Cost: ₹${weightedAvgPrice.toFixed(2)}.`,
       type: 'STOCK_ADDED'
     });
 
@@ -72,6 +78,7 @@ const addStock = async (req, res, next) => {
         productName: product.name,
         newQuantity: product.quantity,
         averageBuyingPrice: product.buyingPrice,
+        sellingPrice: product.sellingPrice,
         historyLog
       }
     });

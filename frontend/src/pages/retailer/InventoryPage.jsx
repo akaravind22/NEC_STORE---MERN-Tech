@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layers, PlusCircle, AlertTriangle, CheckCircle2, History, Search, X, ArrowUpDown, ChevronUp, ChevronDown, Package } from 'lucide-react';
+import { Layers, PlusCircle, AlertTriangle, CheckCircle2, History, Search, X, ArrowUpDown, ChevronUp, ChevronDown, Package, TrendingDown } from 'lucide-react';
 import GlassCard from '../../components/common/GlassCard';
 import GlassButton from '../../components/common/GlassButton';
 import GlassInput from '../../components/common/GlassInput';
@@ -17,6 +17,7 @@ const InventoryPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [addedQty, setAddedQty] = useState('');
   const [newBuyingPrice, setNewBuyingPrice] = useState('');
+  const [newSellingPrice, setNewSellingPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Search & Filter & Sort States
@@ -68,6 +69,7 @@ const InventoryPage = () => {
     setSelectedProduct(product);
     setAddedQty('');
     setNewBuyingPrice(product.buyingPrice || '');
+    setNewSellingPrice(product.sellingPrice || '');
   };
 
   const handleAddStockSubmit = async (e) => {
@@ -82,7 +84,8 @@ const InventoryPage = () => {
       const res = await getAxios().post('/stock/add', {
         productId: selectedProduct.id,
         addedQuantity: parseInt(addedQty),
-        newBuyingPrice: parseFloat(newBuyingPrice) || selectedProduct.buyingPrice
+        newBuyingPrice: parseFloat(newBuyingPrice) || selectedProduct.buyingPrice,
+        newSellingPrice: parseFloat(newSellingPrice) || selectedProduct.sellingPrice
       });
 
       if (res.data.success) {
@@ -513,13 +516,55 @@ const InventoryPage = () => {
             />
 
             <GlassInput
-              label="Purchase / Cost Price for New Batch (₹)"
+              label="New Batch Purchase / Cost Price (₹)"
               type="number"
               step="0.01"
               min="0"
               placeholder={String(selectedProduct.buyingPrice || '0.00')}
               value={newBuyingPrice}
               onChange={(e) => setNewBuyingPrice(e.target.value)}
+            />
+
+            {/* WAC Preview — shows calculated weighted average cost in real-time */}
+            {(() => {
+              const prevQty = selectedProduct.quantity || 0;
+              const prevPrice = parseFloat(selectedProduct.buyingPrice) || 0;
+              const addQty = parseInt(addedQty) || 0;
+              const addPrice = parseFloat(newBuyingPrice) || prevPrice;
+              const totalQty = prevQty + addQty;
+              const wac = totalQty === 0 ? 0
+                : prevQty === 0 ? addPrice
+                : ((prevQty * prevPrice) + (addQty * addPrice)) / totalQty;
+              const changed = addQty > 0 && Math.abs(wac - prevPrice) > 0.001;
+              return addQty > 0 ? (
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  background: changed ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                  border: `1px solid ${changed ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                  fontSize: '0.875rem'
+                }}>
+                  <div style={{ fontWeight: 700, marginBottom: '6px', color: changed ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <TrendingDown size={15} /> Weighted Average Cost Preview
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', color: 'var(--text-muted)' }}>
+                    <span>Existing: <strong style={{color:'var(--text-main)'}}>{prevQty} units @ ₹{prevPrice.toFixed(2)}</strong></span>
+                    <span>Adding: <strong style={{color:'var(--text-main)'}}>{addQty} units @ ₹{addPrice.toFixed(2)}</strong></span>
+                    <span>Total Qty: <strong style={{color:'var(--text-main)'}}>{totalQty} units</strong></span>
+                    <span>New Avg Cost: <strong style={{color: changed ? '#f59e0b' : '#10b981', fontSize:'1rem'}}>₹{wac.toFixed(2)}</strong></span>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            <GlassInput
+              label="Selling / Retail Price (₹)"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={String(selectedProduct.sellingPrice || '0.00')}
+              value={newSellingPrice}
+              onChange={(e) => setNewSellingPrice(e.target.value)}
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>

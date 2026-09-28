@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, Eye, CheckCircle2, Clock, Truck, Search, X, ArrowUpDown, ChevronUp, ChevronDown, Filter } from 'lucide-react';
+import { ShoppingBag, Eye, CheckCircle2, Clock, Truck, Search, X, ArrowUpDown, ChevronUp, ChevronDown, Filter, Calendar } from 'lucide-react';
 import GlassCard from '../../components/common/GlassCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import GlassModal from '../../components/common/GlassModal';
@@ -22,6 +22,9 @@ const OrderListPage = () => {
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('ALL');
   const [sortKey, setSortKey] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
+
+  // Date filter — single day
+  const [selectedDate, setSelectedDate] = useState('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -122,6 +125,12 @@ const OrderListPage = () => {
           return false;
         }
 
+        // Single date filter
+        if (selectedDate) {
+          const orderDateStr = new Date(o.createdAt).toLocaleDateString('en-CA');
+          if (orderDateStr !== selectedDate) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -149,7 +158,7 @@ const OrderListPage = () => {
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
-  }, [orders, search, orderStatusFilter, paymentStatusFilter, deliveryStatusFilter, sortKey, sortDirection]);
+  }, [orders, search, orderStatusFilter, paymentStatusFilter, deliveryStatusFilter, selectedDate, sortKey, sortDirection]);
 
   // Adjust page number if out of range
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
@@ -169,6 +178,7 @@ const OrderListPage = () => {
     setOrderStatusFilter('ALL');
     setPaymentStatusFilter('ALL');
     setDeliveryStatusFilter('ALL');
+    setSelectedDate('');
     setSortKey('createdAt');
     setSortDirection('desc');
     setCurrentPage(1);
@@ -179,6 +189,7 @@ const OrderListPage = () => {
     orderStatusFilter !== 'ALL' ||
     paymentStatusFilter !== 'ALL' ||
     deliveryStatusFilter !== 'ALL' ||
+    selectedDate !== '' ||
     sortKey !== 'createdAt' ||
     sortDirection !== 'desc';
 
@@ -285,12 +296,49 @@ const OrderListPage = () => {
               </select>
             </div>
 
-            {/* Sort Dropdown */}
+            {/* Date Picker — filter by exact day */}
+            <div style={{ position: 'relative' }}>
+              <Calendar size={16} style={{
+                position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                color: selectedDate ? 'var(--primary-blue)' : 'var(--text-subtle)', pointerEvents: 'none', zIndex: 1
+              }} />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => { setSelectedDate(e.target.value); setCurrentPage(1); }}
+                className="glass-input"
+                title="Filter by exact date"
+                style={{
+                  paddingLeft: '36px',
+                  width: '100%',
+                  cursor: 'pointer',
+                  color: selectedDate ? 'var(--text-main)' : 'var(--text-muted)',
+                  borderColor: selectedDate ? 'var(--primary-blue)' : undefined,
+                  boxSizing: 'border-box'
+                }}
+              />
+              {selectedDate && (
+                <button
+                  onClick={() => { setSelectedDate(''); setCurrentPage(1); }}
+                  title="Clear date"
+                  style={{
+                    position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'transparent', border: 'none', color: 'var(--status-danger)', cursor: 'pointer', zIndex: 2
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Sort Dropdown — amount & name only */}
             <div>
               <select
                 value={sortKey + '_' + sortDirection}
                 onChange={(e) => {
-                  const [key, dir] = e.target.value.split('_');
+                  const parts = e.target.value.split('_');
+                  const dir = parts.pop();
+                  const key = parts.join('_');
                   setSortKey(key);
                   setSortDirection(dir);
                   setCurrentPage(1);
@@ -298,12 +346,11 @@ const OrderListPage = () => {
                 className="glass-input"
                 style={{ width: '100%', cursor: 'pointer' }}
               >
-                <option value="createdAt_desc">Date: Newest First</option>
-                <option value="createdAt_asc">Date: Oldest First</option>
+                <option value="createdAt_desc">Sort: Default</option>
                 <option value="totalAmount_desc">Amount: High to Low</option>
                 <option value="totalAmount_asc">Amount: Low to High</option>
-                <option value="customer_asc">Customer Name: A - Z</option>
-                <option value="customer_desc">Customer Name: Z - A</option>
+                <option value="customer_asc">Customer: A - Z</option>
+                <option value="customer_desc">Customer: Z - A</option>
               </select>
             </div>
           </div>
@@ -313,6 +360,11 @@ const OrderListPage = () => {
             <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', gap: '16px' }}>
               <span>Total Orders: <strong style={{ color: 'var(--text-main)' }}>{orders.length}</strong></span>
               <span>Matched: <strong style={{ color: 'var(--primary-blue)' }}>{filteredOrders.length}</strong></span>
+              {selectedDate && (
+                <span style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>
+                  📅 {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              )}
             </div>
 
             {isFilterActive && (
@@ -378,7 +430,9 @@ const OrderListPage = () => {
               ) : paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    No customer orders match your criteria.
+                    {selectedDate
+                        ? `No orders found on ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.`
+                        : 'No customer orders match your criteria.'}
                   </td>
                 </tr>
               ) : (
