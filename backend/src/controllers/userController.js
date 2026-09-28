@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const { User, Order } = require('../models');
 const { Op } = require('sequelize');
 
@@ -58,7 +59,7 @@ const getUserById = async (req, res, next) => {
 // Create Staff / Retailer / Admin user (Admin only)
 const createStaffUser = async (req, res, next) => {
   try {
-    const { name, email, rollNumber, department, phone, role } = req.body;
+    const { name, email, rollNumber, department, phone, role, password } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ success: false, message: 'Full Name and Email Address are required.' });
@@ -80,6 +81,8 @@ const createStaffUser = async (req, res, next) => {
       }
     }
 
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : await bcrypt.hash('Password123', 10);
+
     const user = await User.create({
       name,
       email,
@@ -87,7 +90,8 @@ const createStaffUser = async (req, res, next) => {
       department: department || null,
       phone: phone || null,
       role,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      password: hashedPassword
     });
 
     return res.status(201).json({

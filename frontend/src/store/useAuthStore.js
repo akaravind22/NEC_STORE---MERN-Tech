@@ -45,7 +45,33 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  sendOtp: async (email) => {
+    // Direct Password Login (Username/Email + Password)
+  login: async (identifier, password) => {
+    set({ loading: true });
+    try {
+      const res = await axios.post(`${API_URL}/auth/login`, {
+        username: identifier,
+        password
+      });
+
+      if (res.data.success) {
+        const { token, user } = res.data;
+        localStorage.setItem('nec_token', token);
+        localStorage.setItem('nec_user', JSON.stringify(user));
+
+        set({ token, user, isAuthenticated: true, loading: false });
+        useToastStore.getState().addToast(`Welcome back, ${user.name}!`, 'success');
+        return { success: true, user };
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      useToastStore.getState().addToast(msg, 'error');
+      set({ loading: false });
+      return { success: false, message: msg };
+    }
+  },
+
+sendOtp: async (email) => {
     set({ loading: true });
     try {
       const res = await axios.post(`${API_URL}/auth/send-otp`, { email });

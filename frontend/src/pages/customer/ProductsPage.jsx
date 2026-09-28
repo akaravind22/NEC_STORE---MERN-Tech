@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, ArrowUpDown, SlidersHorizontal, PackageX } from 'lucide-react';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import GlassInput from '../../components/common/GlassInput';
 import ProductCard from '../../components/customer/ProductCard';
 import { CardSkeleton } from '../../components/common/LoadingSkeleton';
 import EmptyState from '../../components/common/EmptyState';
+import CenteredPagination from '../../components/common/CenteredPagination';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
@@ -23,6 +24,10 @@ const ProductsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [availability, setAvailability] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12;
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -58,6 +63,23 @@ const ProductsPage = () => {
   useEffect(() => {
     fetchProducts();
   }, [search, selectedCategory, availability, sortBy]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, availability, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return products.slice(start, start + pageSize);
+  }, [products, currentPage, pageSize]);
 
   return (
     <div className="page-fade-enter">
@@ -169,11 +191,21 @@ const ProductsPage = () => {
           />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '24px' }}>
-            {products.map((product) => (
+            {paginatedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
+
+        {/* Centered Pagination */}
+        <CenteredPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={products.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          itemLabel="products"
+        />
       </main>
 
       <Footer />

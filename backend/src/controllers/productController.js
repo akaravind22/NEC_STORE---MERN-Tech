@@ -1,3 +1,4 @@
+const ExcelJS = require('exceljs');
 const { Product, Category } = require('../models');
 const { Op } = require('sequelize');
 
@@ -189,11 +190,326 @@ const getCategories = async (req, res, next) => {
   }
 };
 
+
+// Download Excel Template for Bulk Product Import
+const downloadTemplate = async (req, res, next) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'NEC Store Admin';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Products', {
+      views: [{ showGridLines: true }]
+    });
+
+    worksheet.columns = [
+      { header: 'Product Name *', key: 'name', width: 36 },
+      { header: 'Category *', key: 'category', width: 22 },
+      { header: 'Buying Price (₹)', key: 'buyingPrice', width: 18 },
+      { header: 'Selling Price (₹) *', key: 'sellingPrice', width: 20 },
+      { header: 'Quantity (Stock)', key: 'quantity', width: 18 },
+      { header: 'Low Stock Threshold', key: 'lowStockThreshold', width: 22 },
+      { header: 'Description', key: 'description', width: 45 },
+      { header: 'Image URL', key: 'image', width: 55 }
+    ];
+
+    // Style Header Row
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 30;
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E40AF' } // Deep Royal Blue
+      };
+      cell.font = {
+        name: 'Segoe UI',
+        size: 11,
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'medium', color: { argb: 'FF1E3A8A' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
+    });
+
+    // Sample data rows
+    const sampleRows = [
+      {
+        name: 'Classmate Octane Gel Pen (Pack of 5)',
+        category: 'Stationery',
+        buyingPrice: 45.00,
+        sellingPrice: 60.00,
+        quantity: 50,
+        lowStockThreshold: 10,
+        description: 'Smooth waterproof gel pens for exam and note-taking',
+        image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=500'
+      },
+      {
+        name: 'Casio Scientific Calculator FX-991CW',
+        category: 'Electronics',
+        buyingPrice: 1350.00,
+        sellingPrice: 1550.00,
+        quantity: 20,
+        lowStockThreshold: 5,
+        description: 'Non-programmable scientific calculator with high definition display',
+        image: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=500'
+      },
+      {
+        name: 'Higher Engineering Mathematics - B.S. Grewal',
+        category: 'Books',
+        buyingPrice: 650.00,
+        sellingPrice: 780.00,
+        quantity: 15,
+        lowStockThreshold: 4,
+        description: 'Comprehensive mathematics reference textbook for engineering students',
+        image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500'
+      },
+      {
+        name: 'NEC Campus Identity Lanyard & Badge Holder',
+        category: 'Accessories',
+        buyingPrice: 25.00,
+        sellingPrice: 40.00,
+        quantity: 120,
+        lowStockThreshold: 20,
+        description: 'Durable nylon neck ribbon lanyard with clear ID card casing',
+        image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500'
+      }
+    ];
+
+    sampleRows.forEach((item) => {
+      const row = worksheet.addRow(item);
+      row.height = 24;
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Segoe UI', size: 10 };
+        cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 || colNumber === 7 || colNumber === 8 ? 'left' : 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        };
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="NEC_Store_Product_Import_Template.xlsx"');
+    return res.status(200).send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Error generating template:', error);
+    next(error);
+  }
+};
+
+// Bulk Import Products from Excel (.xlsx) or JSON
+const bulkImportProducts = async (req, res, next) => {
+  try {
+    const { fileBase64, items } = req.body;
+
+    let rowsToProcess = [];
+
+    if (Array.isArray(items) && items.length > 0) {
+      rowsToProcess = items;
+    } else if (fileBase64) {
+      // Decode base64 buffer
+      const base64Data = fileBase64.replace(/^data:.*?;base64,/, '');
+      const fileBuffer = Buffer.from(base64Data, 'base64');
+
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(fileBuffer);
+
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet || worksheet.rowCount < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'The uploaded Excel file does not contain any product rows.'
+        });
+      }
+
+      // Read header mapping
+      const headerRow = worksheet.getRow(1);
+      const colMap = {};
+      headerRow.eachCell((cell, colNumber) => {
+        const headerText = String(cell.value || '').trim().toLowerCase();
+        if (headerText.includes('name') || headerText.includes('product')) colMap.name = colNumber;
+        else if (headerText.includes('cat')) colMap.category = colNumber;
+        else if (headerText.includes('buy') || headerText.includes('cost') || headerText.includes('purchase')) colMap.buyingPrice = colNumber;
+        else if (headerText.includes('sell') || headerText.includes('price') || headerText.includes('mrp')) colMap.sellingPrice = colNumber;
+        else if (headerText.includes('quant') || headerText.includes('qty') || headerText.includes('stock')) colMap.quantity = colNumber;
+        else if (headerText.includes('thresh') || headerText.includes('low') || headerText.includes('alert')) colMap.lowStockThreshold = colNumber;
+        else if (headerText.includes('desc')) colMap.description = colNumber;
+        else if (headerText.includes('image') || headerText.includes('photo') || headerText.includes('img') || headerText.includes('url')) colMap.image = colNumber;
+      });
+
+      // Default fallbacks if header keywords weren't exact
+      if (!colMap.name) colMap.name = 1;
+      if (!colMap.category) colMap.category = 2;
+      if (!colMap.buyingPrice) colMap.buyingPrice = 3;
+      if (!colMap.sellingPrice) colMap.sellingPrice = 4;
+      if (!colMap.quantity) colMap.quantity = 5;
+      if (!colMap.lowStockThreshold) colMap.lowStockThreshold = 6;
+      if (!colMap.description) colMap.description = 7;
+      if (!colMap.image) colMap.image = 8;
+
+      const getCellValue = (row, colIndex) => {
+        if (!colIndex) return '';
+        const cell = row.getCell(colIndex);
+        if (!cell || cell.value === null || cell.value === undefined) return '';
+        if (typeof cell.value === 'object') {
+          if (cell.value.text) return String(cell.value.text).trim();
+          if (cell.value.result !== undefined) return cell.value.result;
+          if (cell.value.richText) return cell.value.richText.map(t => t.text).join('').trim();
+        }
+        return cell.value;
+      };
+
+      for (let r = 2; r <= worksheet.rowCount; r++) {
+        const row = worksheet.getRow(r);
+        const nameVal = String(getCellValue(row, colMap.name) || '').trim();
+        const sellingPriceVal = getCellValue(row, colMap.sellingPrice);
+
+        // If entire row is blank, skip
+        if (!nameVal && !sellingPriceVal) continue;
+
+        rowsToProcess.push({
+          rowNumber: r,
+          name: nameVal,
+          category: String(getCellValue(row, colMap.category) || 'Stationery').trim(),
+          buyingPrice: getCellValue(row, colMap.buyingPrice),
+          sellingPrice: sellingPriceVal,
+          quantity: getCellValue(row, colMap.quantity),
+          lowStockThreshold: getCellValue(row, colMap.lowStockThreshold),
+          description: String(getCellValue(row, colMap.description) || '').trim(),
+          image: String(getCellValue(row, colMap.image) || '').trim()
+        });
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'No Excel file or items provided for import.'
+      });
+    }
+
+    if (rowsToProcess.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid data rows found in the uploaded file.'
+      });
+    }
+
+    // Default fallback category images if empty
+    const categoryDefaultImages = {
+      'Stationery': 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=500',
+      'Electronics': 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=500',
+      'Books': 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500',
+      'Accessories': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500',
+      'College Essentials': 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500'
+    };
+
+    const categoriesCache = {};
+    const allCategories = await Category.findAll();
+    allCategories.forEach(c => {
+      categoriesCache[c.name.toLowerCase()] = c;
+    });
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    const errors = [];
+    const importedProducts = [];
+
+    for (const item of rowsToProcess) {
+      const rowNum = item.rowNumber || 'N/A';
+      if (!item.name) {
+        errors.push({ row: rowNum, error: 'Product name is required.' });
+        continue;
+      }
+
+      const numSellingPrice = parseFloat(item.sellingPrice);
+      if (isNaN(numSellingPrice) || numSellingPrice < 0) {
+        errors.push({ row: rowNum, name: item.name, error: 'Invalid selling price: "' + item.sellingPrice + '". Must be a valid positive number.' });
+        continue;
+      }
+
+      const numBuyingPrice = parseFloat(item.buyingPrice) || 0.00;
+      const numQuantity = parseInt(item.quantity) >= 0 ? parseInt(item.quantity) : 0;
+      const numThreshold = parseInt(item.lowStockThreshold) >= 0 ? parseInt(item.lowStockThreshold) : 5;
+
+      // Find or create category
+      const catName = item.category || 'Stationery';
+      let category = categoriesCache[catName.toLowerCase()];
+      if (!category) {
+        const [newCat] = await Category.findOrCreate({
+          where: { name: catName },
+          defaults: { name: catName, description: catName + ' items category' }
+        });
+        category = newCat;
+        categoriesCache[catName.toLowerCase()] = category;
+      }
+
+      const finalImage = item.image || categoryDefaultImages[category.name] || categoryDefaultImages['Stationery'];
+
+      // Check if product with this exact name already exists
+      let existing = await Product.findOne({ where: { name: item.name } });
+      if (existing) {
+        // Update product
+        await existing.update({
+          categoryId: category.id,
+          buyingPrice: numBuyingPrice > 0 ? numBuyingPrice : existing.buyingPrice,
+          sellingPrice: numSellingPrice,
+          quantity: existing.quantity + numQuantity,
+          lowStockThreshold: numThreshold,
+          description: item.description || existing.description,
+          image: item.image || existing.image
+        });
+        updatedCount++;
+        importedProducts.push(existing);
+      } else {
+        // Create new product
+        const newProd = await Product.create({
+          name: item.name,
+          categoryId: category.id,
+          buyingPrice: numBuyingPrice,
+          sellingPrice: numSellingPrice,
+          quantity: numQuantity,
+          lowStockThreshold: numThreshold,
+          description: item.description || item.name + ' for NEC campus store',
+          image: finalImage
+        });
+        createdCount++;
+        importedProducts.push(newProd);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Bulk import completed! ' + createdCount + ' product(s) added, ' + updatedCount + ' existing product(s) updated.',
+      summary: {
+        totalRows: rowsToProcess.length,
+        createdCount,
+        updatedCount,
+        failedCount: errors.length
+      },
+      errors
+    });
+  } catch (error) {
+    console.error('Bulk import error:', error);
+    next(error);
+  }
+};
+
+
 module.exports = {
   getAllProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
-  getCategories
+  getCategories,
+  downloadTemplate,
+  bulkImportProducts
 };

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GraduationCap, ArrowRight, ShieldCheck } from 'lucide-react';
+import { GraduationCap, ArrowRight, ShieldCheck, Eye, EyeOff, Lock } from 'lucide-react';
 import GlassCard from '../../components/common/GlassCard';
 import GlassInput from '../../components/common/GlassInput';
 import GlassButton from '../../components/common/GlassButton';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useToastStore } from '../../store/useToastStore';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
@@ -14,10 +15,16 @@ const RegisterPage = () => {
     email: '',
     rollNumber: '',
     department: '',
-    phone: ''
+    phone: '',
+    password: '',
+    confirmPassword: ''
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const { register, loading } = useAuthStore();
+  const { addToast } = useToastStore();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -26,8 +33,19 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.password || formData.password.length < 6) {
+      addToast('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      addToast('Passwords do not match. Please re-enter.', 'error');
+      return;
+    }
+
     const res = await register(formData);
-    if (res.success) {
+    if (res?.success) {
       navigate('/login');
     }
   };
@@ -37,9 +55,9 @@ const RegisterPage = () => {
       <Navbar />
 
       <main className="app-container" style={{ minHeight: 'calc(100vh - 250px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px 16px' }}>
-        <div style={{ width: '100%', maxWidth: '520px' }}>
+        <div style={{ width: '100%', maxWidth: '540px' }}>
           <GlassCard hover={false} style={{ padding: '38px 32px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '26px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '22px' }}>
               <div
                 style={{
                   width: '54px',
@@ -57,10 +75,7 @@ const RegisterPage = () => {
                 <GraduationCap size={28} />
               </div>
 
-              <h2 style={{ fontSize: '1.75rem', marginBottom: '4px', fontWeight: 800 }}>Create Student Account</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.4 }}>
-                Join NEC Store with your student credentials to browse campus products, pay online, and pick up in seconds without waiting in line.
-              </p>
+              <h2 style={{ fontSize: '1.75rem', marginBottom: '0', fontWeight: 800 }}>Create Student Account</h2>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -111,6 +126,65 @@ const RegisterPage = () => {
                 onChange={handleChange}
                 required
               />
+
+              {/* Password and Confirm Password Fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div style={{ position: 'relative' }}>
+                  <GlassInput
+                    label="Password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Min 6 characters"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      bottom: '12px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '4px'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+
+                <div style={{ position: 'relative' }}>
+                  <GlassInput
+                    label="Confirm Password"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Re-enter password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      bottom: '12px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '4px'
+                    }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+              </div>
 
               <div
                 style={{

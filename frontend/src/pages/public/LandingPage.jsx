@@ -74,7 +74,7 @@ const LandingPage = () => {
               </h1>
 
               <p style={{ fontSize: '1.15rem', color: 'var(--text-muted)', marginBottom: '32px', lineHeight: 1.6 }}>
-                Everything you need for campus life in one place — textbooks, scientific calculators, engineering lab gear, stationery, and college apparel with instant OTP verification and seamless Razorpay checkout.
+                Everything you need for campus life in one place — textbooks, scientific calculators, engineering lab gear, stationery, and college apparel with secure password authentication and seamless Razorpay checkout.
               </p>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
@@ -107,7 +107,7 @@ const LandingPage = () => {
                 ) : (
                   <Link to="/login" style={{ textDecoration: 'none' }}>
                     <GlassButton variant="secondary" size="lg" icon={ArrowRight}>
-                      Sign In with OTP
+                      Sign In / Login
                     </GlassButton>
                   </Link>
                 )}
@@ -169,9 +169,9 @@ const LandingPage = () => {
               <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: 'rgba(37, 99, 235, 0.15)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
                 <ShieldCheck size={24} />
               </div>
-              <h3 style={{ fontSize: '1.15rem', marginBottom: '8px' }}>OTP Email Security</h3>
+              <h3 style={{ fontSize: '1.15rem', marginBottom: '8px' }}>Secure Password Login</h3>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                Passwordless 6-digit email OTP authentication ensuring student roll number verification.
+                Secure password protection with instant authentication for students and staff.
               </p>
             </GlassCard>
 

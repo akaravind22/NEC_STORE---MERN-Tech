@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Search, Ban, CheckCircle, Eye, UserPlus, UserCog, Shield, Store, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Users, Search, Ban, CheckCircle, Eye, UserPlus, UserCog, Shield, Store, GraduationCap, ArrowUpDown, ChevronUp, ChevronDown, X } from 'lucide-react';
 import GlassCard from '../../components/common/GlassCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import GlassButton from '../../components/common/GlassButton';
 import GlassInput from '../../components/common/GlassInput';
 import GlassModal from '../../components/common/GlassModal';
+import CenteredPagination from '../../components/common/CenteredPagination';
 import Sidebar from '../../components/layout/Sidebar';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToastStore } from '../../store/useToastStore';
@@ -15,6 +16,12 @@ const UserManagementPage = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Sorting & Pagination States
+  const [sortKey, setSortKey] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const [selectedUser, setSelectedUser] = useState(null);
   const [updating, setUpdating] = useState(false);
 
@@ -127,6 +134,60 @@ const UserManagementPage = () => {
     }
   };
 
+  // Sort toggle handler
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const renderSortIndicator = (key) => {
+    if (sortKey !== key) {
+      return <ArrowUpDown size={13} style={{ opacity: 0.35, marginLeft: '6px' }} />;
+    }
+    return sortDirection === 'asc' ? (
+      <ChevronUp size={14} style={{ color: 'var(--primary-blue)', marginLeft: '6px', fontWeight: 700 }} />
+    ) : (
+      <ChevronDown size={14} style={{ color: 'var(--primary-blue)', marginLeft: '6px', fontWeight: 700 }} />
+    );
+  };
+
+  // Sorted and Paginated Users
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      let valA = a[sortKey];
+      let valB = b[sortKey];
+
+      if (sortKey === 'createdAt') {
+        valA = new Date(valA || 0).getTime();
+        valB = new Date(valB || 0).getTime();
+      } else if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = (valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [users, sortKey, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize));
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedUsers.slice(start, start + pageSize);
+  }, [sortedUsers, currentPage, pageSize]);
+
   return (
     <div style={{ display: 'flex', gap: '24px', padding: '24px', minHeight: '100vh' }}>
       <Sidebar />
@@ -152,7 +213,7 @@ const UserManagementPage = () => {
 
         {/* Filter Bar */}
         <GlassCard hover={false} style={{ padding: '18px 20px', marginBottom: '24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'center' }}>
             <div style={{ position: 'relative' }}>
               <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
@@ -179,7 +240,10 @@ const UserManagementPage = () => {
 
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
               className="glass-input"
               style={{ cursor: 'pointer' }}
             >
@@ -187,6 +251,28 @@ const UserManagementPage = () => {
               <option value="ACTIVE">ACTIVE</option>
               <option value="SUSPENDED">SUSPENDED</option>
             </select>
+
+            {/* Sort Dropdown */}
+            <div>
+              <select
+                value={sortKey + '_' + sortDirection}
+                onChange={(e) => {
+                  const [key, dir] = e.target.value.split('_');
+                  setSortKey(key);
+                  setSortDirection(dir);
+                  setCurrentPage(1);
+                }}
+                className="glass-input"
+                style={{ width: '100%', cursor: 'pointer' }}
+              >
+                <option value="name_asc">Name: A - Z</option>
+                <option value="name_desc">Name: Z - A</option>
+                <option value="createdAt_desc">Date Joined: Newest</option>
+                <option value="createdAt_asc">Date Joined: Oldest</option>
+                <option value="role_asc">Role</option>
+                <option value="department_asc">Department</option>
+              </select>
+            </div>
           </div>
         </GlassCard>
 
@@ -195,13 +281,29 @@ const UserManagementPage = () => {
           <table className="glass-table">
             <thead>
               <tr>
-                <th>User Details</th>
-                <th>Role</th>
+                <th onClick={() => handleSort('name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    User Details {renderSortIndicator('name')}
+                  </div>
+                </th>
+                <th onClick={() => handleSort('role')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    Role {renderSortIndicator('role')}
+                  </div>
+                </th>
                 <th>Roll / Staff ID</th>
-                <th>Department / Section</th>
+                <th onClick={() => handleSort('department')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    Department / Section {renderSortIndicator('department')}
+                  </div>
+                </th>
                 <th>Phone</th>
                 <th>Status</th>
-                <th>Joined Date</th>
+                <th onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    Joined Date {renderSortIndicator('createdAt')}
+                  </div>
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -215,7 +317,7 @@ const UserManagementPage = () => {
                   <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>No matching users found.</td>
                 </tr>
               ) : (
-                users.map((u) => (
+                paginatedUsers.map((u) => (
                   <tr key={u.id}>
                     <td>
                       <div style={{ fontWeight: 700 }}>{u.name}</div>
@@ -240,9 +342,9 @@ const UserManagementPage = () => {
                         {u.role}
                       </span>
                     </td>
-                    <td>{u.rollNumber || '—'}</td>
-                    <td>{u.department || '—'}</td>
-                    <td>{u.phone || '—'}</td>
+                    <td>{u.rollNumber || 'ï¿½'}</td>
+                    <td>{u.department || 'ï¿½'}</td>
+                    <td>{u.phone || 'ï¿½'}</td>
                     <td><StatusBadge status={u.status} /></td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td>
@@ -288,6 +390,16 @@ const UserManagementPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Centered Pagination */}
+        <CenteredPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={sortedUsers.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          itemLabel="users"
+        />
       </main>
 
       {/* Modal: Create Staff / Retailer */}
