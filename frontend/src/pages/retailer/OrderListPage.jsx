@@ -208,9 +208,9 @@ const OrderListPage = () => {
 
         {/* Filter and Control Bar */}
         <GlassCard hover={false} style={{ padding: '20px', marginBottom: '22px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '10px', alignItems: 'center', overflowX: 'auto' }}>
             {/* Search Input */}
-            <div style={{ position: 'relative', gridColumn: 'span 2' }}>
+            <div style={{ position: 'relative', flex: '2 1 200px', minWidth: '160px' }}>
               <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
@@ -243,7 +243,7 @@ const OrderListPage = () => {
             </div>
 
             {/* Order Status Filter */}
-            <div>
+            <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
               <select
                 value={orderStatusFilter}
                 onChange={(e) => {
@@ -262,7 +262,7 @@ const OrderListPage = () => {
             </div>
 
             {/* Payment Status Filter */}
-            <div>
+            <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
               <select
                 value={paymentStatusFilter}
                 onChange={(e) => {
@@ -280,7 +280,7 @@ const OrderListPage = () => {
             </div>
 
             {/* Delivery Status Filter */}
-            <div>
+            <div style={{ flex: '1 1 130px', minWidth: '120px' }}>
               <select
                 value={deliveryStatusFilter}
                 onChange={(e) => {
@@ -297,7 +297,7 @@ const OrderListPage = () => {
             </div>
 
             {/* Date Picker — filter by exact day */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flex: '1 1 140px', minWidth: '130px' }}>
               <Calendar size={16} style={{
                 position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
                 color: selectedDate ? 'var(--primary-blue)' : 'var(--text-subtle)', pointerEvents: 'none', zIndex: 1
@@ -332,7 +332,7 @@ const OrderListPage = () => {
             </div>
 
             {/* Sort Dropdown — amount & name only */}
-            <div>
+            <div style={{ flex: '1 1 130px', minWidth: '120px' }}>
               <select
                 value={sortKey + '_' + sortDirection}
                 onChange={(e) => {

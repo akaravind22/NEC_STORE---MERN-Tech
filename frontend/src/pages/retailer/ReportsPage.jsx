@@ -102,12 +102,12 @@ const ReportsPage = () => {
               Audit log of every stock batch added, retailer ID, previous prices, new prices, and calculated weighted average costs.
             </p>
             <GlassButton
-              variant="secondary"
+              variant="accent"
               size="md"
               disabled={downloading === 'stock-history'}
               icon={downloading === 'stock-history' ? RefreshCw : Download}
               onClick={() => handleDownload('stock-history', 'NEC_Store_Stock_History')}
-              style={{ width: '100%' }}
+              style={{ width: '100%', background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: '0 4px 15px rgba(124, 58, 237, 0.35)' }}
             >
               {downloading === 'stock-history' ? 'Generating...' : 'Download Incoming Stock (.xlsx)'}
             </GlassButton>

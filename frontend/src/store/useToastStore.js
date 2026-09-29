@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export const useToastStore = create((set) => ({
   toasts: [],
-  addToast: (messageOrObj, type = 'success') => {
+  addToast: (messageOrObj, type = 'success', duration) => {
     const id = Date.now() + Math.random();
     
     // Safely handle both addToast(msg, type) and addToast({ message, type, title })
@@ -24,11 +24,12 @@ export const useToastStore = create((set) => ({
       toasts: [...state.toasts, { id, message: String(messageText), type: toastType }]
     }));
 
+    const displayDuration = duration || (toastType === 'info' || toastType === 'warning' ? 12000 : 4000);
     setTimeout(() => {
       set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id)
       }));
-    }, 4000);
+    }, displayDuration);
   },
   removeToast: (id) => {
     set((state) => ({

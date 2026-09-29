@@ -18,10 +18,13 @@ import {
   Moon
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useStoreTimingAlert } from '../../store/useStoreTimingAlert';
 import NotificationBell from '../common/NotificationBell';
 
 const Sidebar = () => {
   const { user, logout, theme, toggleTheme } = useAuthStore();
+  // 🔔 Store timing alerts (opens/closes soon)
+  useStoreTimingAlert();
   const location = useLocation();
   const navigate = useNavigate();
 
