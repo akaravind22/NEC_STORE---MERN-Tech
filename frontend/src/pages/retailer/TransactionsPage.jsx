@@ -149,16 +149,16 @@ const TransactionsPage = () => {
       });
   }, [orders, search, paymentStatusFilter, fromDate, toDate, sortKey, sortDirection]);
 
-  // Filtered Purchase Batches
+  // Filtered Purchase Transactions
   const filteredPurchases = useMemo(() => {
     return purchases
       .filter((p) => {
         if (search.trim()) {
           const q = search.toLowerCase();
-          const matchId = ('#PURCH-' + p.id).toLowerCase().includes(q) || String(p.id).includes(q);
-          const matchProd = (p.productName || '').toLowerCase().includes(q);
-          const matchVendor = (p.purchasedFrom || '').toLowerCase().includes(q);
-          if (!matchId && !matchProd && !matchVendor) return false;
+          const matchBatch = ('#PURCH-' + p.id).toLowerCase().includes(q) || String(p.id).includes(q);
+          const matchProd = p.productName && p.productName.toLowerCase().includes(q);
+          const matchSupp = p.purchasedFrom && p.purchasedFrom.toLowerCase().includes(q);
+          if (!matchBatch && !matchProd && !matchSupp) return false;
         }
 
         if (fromDate) {
@@ -203,6 +203,7 @@ const TransactionsPage = () => {
     setFromDate('');
     setToDate('');
     setCurrentPage(1);
+    addToast('Filters reset to overall dataset.', 'info');
   };
 
   // ═════════════════════════════════════════════════════════════════
@@ -224,8 +225,8 @@ const TransactionsPage = () => {
       if (search.trim()) filterDetails.push('Search: "' + search.trim() + '"');
 
       const filterSummaryText = filterDetails.length > 0
-        ? 'Filtered Scope: ' + filterDetails.join(' | ')
-        : 'Overall Scope: All Records (No Filter Applied)';
+        ? 'Scope: Filtered (' + filterDetails.join(' | ') + ')'
+        : 'Scope: Overall (All Records)';
 
       if (activeTab === 'student') {
         // STUDENT ORDERS TRANSACTIONS EXCEL
@@ -250,7 +251,7 @@ const TransactionsPage = () => {
 
         worksheet.mergeCells('A2:G2');
         const metaCell = worksheet.getCell('A2');
-        metaCell.value = filterSummaryText + '  •  Exported on: ' + new Date().toLocaleString('en-IN') + '  •  Total: ' + activeDataSet.length;
+        metaCell.value = filterSummaryText + '  •  Exported on: ' + new Date().toLocaleString('en-IN') + '  •  Total Txns: ' + activeDataSet.length;
         metaCell.font = { italic: true, size: 10, color: { argb: '374151' } };
         metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
         metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F3F4F6' } };
@@ -275,7 +276,7 @@ const TransactionsPage = () => {
             orderId: '#ORD-' + String(o.id).padStart(4, '0'),
             customerName: o.User ? o.User.name : 'Student Customer',
             amount: '₹' + amt.toFixed(2),
-            paymentMethod: 'RAZORPAY',
+            paymentMethod: 'RAZORPAY (Online)',
             status: o.paymentStatus || 'PAID',
             date: new Date(o.createdAt).toLocaleString('en-IN')
           });
@@ -285,7 +286,7 @@ const TransactionsPage = () => {
 
         const summaryRow = worksheet.addRow({
           id: 'TOTAL / SUMMARY',
-          orderId: activeDataSet.length + ' Txns',
+          orderId: activeDataSet.length + ' Orders',
           customerName: '-',
           amount: '₹' + totalAmt.toFixed(2),
           paymentMethod: '-',
@@ -300,7 +301,6 @@ const TransactionsPage = () => {
         const worksheet = workbook.addWorksheet('Purchase Transactions');
         worksheet.columns = [
           { key: 'batchId', width: 16 },
-          { key: 'category', width: 18 },
           { key: 'productName', width: 34 },
           { key: 'purchasedFrom', width: 30 },
           { key: 'unitsAdded', width: 14 },
@@ -309,7 +309,7 @@ const TransactionsPage = () => {
           { key: 'date', width: 24 }
         ];
 
-        worksheet.mergeCells('A1:H1');
+        worksheet.mergeCells('A1:G1');
         const titleCell = worksheet.getCell('A1');
         titleCell.value = 'NEC CAMPUS STORE — STORE PRODUCT PURCHASE TRANSACTIONS';
         titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
@@ -317,7 +317,7 @@ const TransactionsPage = () => {
         titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4C1D95' } };
         worksheet.getRow(1).height = 32;
 
-        worksheet.mergeCells('A2:H2');
+        worksheet.mergeCells('A2:G2');
         const metaCell = worksheet.getCell('A2');
         metaCell.value = filterSummaryText + '  •  Exported on: ' + new Date().toLocaleString('en-IN') + '  •  Total Batches: ' + activeDataSet.length;
         metaCell.font = { italic: true, size: 10, color: { argb: '374151' } };
@@ -327,7 +327,7 @@ const TransactionsPage = () => {
 
         worksheet.getRow(3).values = [];
 
-        const headers = ['Batch ID', 'Category', 'Product Name', 'Purchased From', 'Units Added', 'Purchase Rate (₹)', 'Total Cost (₹)', 'Date & Time'];
+        const headers = ['Batch ID', 'Product Name', 'Purchased From', 'Units Added', 'Purchase Rate (₹)', 'Total Cost (₹)', 'Date & Time'];
         const headerRow = worksheet.getRow(4);
         headerRow.values = headers;
         headerRow.height = 26;
@@ -345,9 +345,8 @@ const TransactionsPage = () => {
 
           const row = worksheet.addRow({
             batchId: '#PURCH-' + String(p.id).padStart(4, '0'),
-            category: p.categoryName || 'General',
             productName: p.productName || 'Product',
-            purchasedFrom: p.purchasedFrom || 'Wholesale Supplier',
+            purchasedFrom: p.purchasedFrom || 'Authorized Wholesaler',
             unitsAdded: '+' + units + ' units',
             purchaseRate: '₹' + parseFloat(p.purchaseRatePerUnit || 0).toFixed(2),
             totalCost: '₹' + cost.toFixed(2),
@@ -359,10 +358,9 @@ const TransactionsPage = () => {
 
         const summaryRow = worksheet.addRow({
           batchId: 'TOTAL / SUMMARY',
-          category: '-',
           productName: activeDataSet.length + ' Batches',
           purchasedFrom: '-',
-          unitsAdded: totalUnits + ' units',
+          unitsAdded: totalUnits + ' total units',
           purchaseRate: '-',
           totalCost: '₹' + totalCost.toFixed(2),
           date: '-'
@@ -373,74 +371,91 @@ const TransactionsPage = () => {
       }
 
       const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const typeSlug = activeTab === 'student' ? 'Student_Transactions' : 'Purchase_Transactions';
-      a.download = 'NEC_Store_' + typeSlug + '_' + Date.now() + '.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const link = document.createElement('a');
+      link.href = url;
+      const scopeName = isFiltered ? '_Filtered' : '_Overall';
+      link.setAttribute('download', 'NEC_Store_' + (activeTab === 'student' ? 'Student_Txns' : 'Purchases') + scopeName + '_' + Date.now() + '.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
       window.URL.revokeObjectURL(url);
 
-      addToast('Downloaded ' + (activeTab === 'student' ? 'Student' : 'Purchase') + ' transactions Excel successfully!', 'success');
+      addToast('Downloaded ' + (activeTab === 'student' ? 'Student Transactions' : 'Purchase Transactions') + ' Excel successfully!', 'success');
     } catch (err) {
       console.error(err);
-      addToast('Failed to export transactions Excel.', 'error');
+      addToast('Failed to export Excel file.', 'error');
     } finally {
       setDownloading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', gap: '24px', padding: '24px', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', gap: '24px', padding: '24px', minHeight: '100vh', background: 'var(--bg-color)' }}>
       <Sidebar />
 
       <main style={{ flex: 1, minWidth: 0 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        {/* Top Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h1 style={{ fontSize: '2rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <CreditCard size={28} color="var(--primary-blue)" /> Transactions Ledger
-            </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-              Separate ledger for customer payments received vs product stock purchases made for the store.
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: 'rgba(37, 99, 235, 0.12)',
+                color: 'var(--primary-blue)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <CreditCard size={22} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: '1.85rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
+                  Transactions Ledger
+                </h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>
+                  Separate ledger for customer payments received vs product stock purchases made for the store.
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* Header Action Buttons */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <GlassButton
-              variant="outline"
-              size="md"
+              variant="secondary"
+              size="sm"
               icon={RefreshCw}
-              onClick={() => { fetchTransactions(); fetchPurchases(); }}
-              disabled={loading || purchaseLoading}
+              onClick={() => {
+                fetchTransactions();
+                fetchPurchases();
+              }}
             >
               Refresh
             </GlassButton>
 
             <GlassButton
-              variant="accent"
-              size="md"
+              variant={activeTab === 'student' ? 'primary' : 'accent'}
+              size="sm"
+              disabled={downloading}
               icon={downloading ? RefreshCw : Download}
-              disabled={downloading || loading || purchaseLoading || activeDataSet.length === 0}
               onClick={handleDownloadExcel}
-              style={{
-                background: activeTab === 'student'
-                  ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
-                  : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
-                color: '#ffffff',
-                fontWeight: 700
-              }}
             >
-              {downloading ? 'Exporting...' : isFiltered ? 'Download Filtered Excel (' + activeDataSet.length + ')' : 'Download Excel (' + (activeTab === 'student' ? 'Student' : 'Purchases') + ')'}
+              {downloading 
+                ? 'Exporting...' 
+                : isFiltered 
+                  ? 'Download Filtered Excel (' + activeDataSet.length + ')'
+                  : activeTab === 'student' ? 'Download Excel (Student)' : 'Download Excel (Purchases)'}
             </GlassButton>
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Switcher */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
           <button
             onClick={() => { setActiveTab('student'); setCurrentPage(1); }}
@@ -448,19 +463,20 @@ const TransactionsPage = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '12px 22px',
+              padding: '10px 20px',
               borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
+              fontSize: '0.9rem',
               fontWeight: 700,
-              fontSize: '0.95rem',
-              transition: 'all 0.2s ease',
-              background: activeTab === 'student' ? 'var(--primary-blue)' : 'var(--card-bg, rgba(255,255,255,0.06))',
-              color: activeTab === 'student' ? '#ffffff' : 'var(--text-muted)'
+              cursor: 'pointer',
+              transition: 'all 200ms ease',
+              border: activeTab === 'student' ? 'none' : '1px solid var(--neu-border-subtle)',
+              background: activeTab === 'student' ? 'var(--gradient-primary)' : 'var(--card-bg)',
+              color: activeTab === 'student' ? '#ffffff' : 'var(--text-muted)',
+              boxShadow: activeTab === 'student' ? '4px 4px 12px rgba(37, 99, 235, 0.35)' : 'var(--neu-extruded-sm)'
             }}
           >
             <GraduationCap size={18} />
-            Student Transactions ({orders.length})
+            <span>Student Transactions ({orders.length})</span>
           </button>
 
           <button
@@ -469,201 +485,263 @@ const TransactionsPage = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '12px 22px',
+              padding: '10px 20px',
               borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
+              fontSize: '0.9rem',
               fontWeight: 700,
-              fontSize: '0.95rem',
-              transition: 'all 0.2s ease',
-              background: activeTab === 'purchase' ? 'var(--primary-purple)' : 'var(--card-bg, rgba(255,255,255,0.06))',
-              color: activeTab === 'purchase' ? '#ffffff' : 'var(--text-muted)'
+              cursor: 'pointer',
+              transition: 'all 200ms ease',
+              border: activeTab === 'purchase' ? 'none' : '1px solid var(--neu-border-subtle)',
+              background: activeTab === 'purchase' ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)' : 'var(--card-bg)',
+              color: activeTab === 'purchase' ? '#ffffff' : 'var(--text-muted)',
+              boxShadow: activeTab === 'purchase' ? '4px 4px 12px rgba(124, 58, 237, 0.35)' : 'var(--neu-extruded-sm)'
             }}
           >
             <ShoppingCart size={18} />
-            Purchase Transactions ({purchases.length})
+            <span>Purchase Transactions ({purchases.length})</span>
           </button>
         </div>
 
-        {/* Filter Toolbar */}
-        <GlassCard hover={false} style={{ padding: '18px 20px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Search */}
-            <div style={{ position: 'relative', flex: '2 1 200px', minWidth: '180px' }}>
-              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        {/* Filter Toolbar (Search + Date Range + Reset) */}
+        <GlassCard hover={false} style={{ padding: '16px 20px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+            
+            {/* Search Input */}
+            <div style={{ position: 'relative', flex: '2 1 240px', minWidth: '200px' }}>
+              <Search
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none'
+                }}
+              />
               <input
                 type="text"
-                placeholder={activeTab === 'student' ? "Search student, txn ID..." : "Search product, vendor, batch..."}
+                placeholder={activeTab === 'student' ? 'Search student, txn ID...' : 'Search batch, product, vendor...'}
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 className="glass-input"
                 style={{ paddingLeft: '36px', width: '100%', fontSize: '0.85rem' }}
               />
               {search && (
-                <button onClick={() => { setSearch(''); setCurrentPage(1); }} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <button
+                  onClick={() => { setSearch(''); setCurrentPage(1); }}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)'
+                  }}
+                >
                   <X size={14} />
                 </button>
               )}
             </div>
 
             {/* From Date */}
-            <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>From:</span>
+            <div style={{ flex: '1 1 150px', minWidth: '130px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From:</span>
                 <input
                   type="date"
                   value={fromDate}
                   onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
                   className="glass-input"
-                  style={{ width: '100%', cursor: 'pointer', fontSize: '0.82rem', padding: '6px 8px' }}
+                  style={{ width: '100%', cursor: 'pointer', fontSize: '0.82rem', padding: '7px 10px' }}
                 />
               </div>
             </div>
 
             {/* To Date */}
-            <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>To:</span>
+            <div style={{ flex: '1 1 150px', minWidth: '130px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>To:</span>
                 <input
                   type="date"
                   value={toDate}
                   min={fromDate || undefined}
                   onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
                   className="glass-input"
-                  style={{ width: '100%', cursor: 'pointer', fontSize: '0.82rem', padding: '6px 8px' }}
+                  style={{ width: '100%', cursor: 'pointer', fontSize: '0.82rem', padding: '7px 10px' }}
                 />
               </div>
             </div>
 
-            {/* Reset */}
+            {/* Reset Filters Button */}
             {isFiltered && (
               <button
                 onClick={clearFilters}
                 style={{
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
-                  padding: '7px 12px',
-                  borderRadius: '8px',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  color: '#ef4444',
+                  background: 'rgba(239, 68, 68, 0.12)',
                   border: '1px solid rgba(239, 68, 68, 0.25)',
-                  cursor: 'pointer',
-                  fontSize: '0.82rem',
-                  fontWeight: 600
+                  color: 'var(--status-danger)',
+                  padding: '7px 12px',
+                  borderRadius: 'var(--radius-sm, 8px)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
                 }}
               >
-                <X size={12} /> Reset
+                <X size={13} /> Reset
               </button>
             )}
           </div>
         </GlassCard>
 
-        {/* Tab 1: Student Transactions Table */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 1: STUDENT TRANSACTIONS TABLE                               */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
         {activeTab === 'student' && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="glass-table">
-              <thead>
-                <tr>
-                  <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>TRANSACTION ID {renderSortIndicator('id')}</div>
-                  </th>
-                  <th>STUDENT / CUSTOMER</th>
-                  <th>PAYMENT METHOD</th>
-                  <th onClick={() => handleSort('totalAmount')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>AMOUNT (₹) {renderSortIndicator('totalAmount')}</div>
-                  </th>
-                  <th>STATUS</th>
-                  <th onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>DATE {renderSortIndicator('createdAt')}</div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading student transactions...</td></tr>
-                ) : paginatedData.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>No student transactions found.</td></tr>
-                ) : paginatedData.map((o) => (
-                  <tr key={o.id}>
-                    <td style={{ fontWeight: 800, color: 'var(--primary-blue)' }}>#TXN-{String(o.id).padStart(4, '0')}</td>
-                    <td>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{o.User ? o.User.name : 'Student Customer'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{o.User?.email || ''}</div>
-                      </div>
-                    </td>
-                    <td><span style={{ fontSize: '0.85rem', fontWeight: 600 }}>RAZORPAY (Online)</span></td>
-                    <td style={{ fontWeight: 800, color: '#059669', fontSize: '1rem' }}>+₹{parseFloat(o.totalAmount).toFixed(2)}</td>
-                    <td><StatusBadge status={o.paymentStatus} /></td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
+          <GlassCard style={{ padding: '0px', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(0, 0, 0, 0.02)', borderBottom: '1px solid var(--neu-border-subtle)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <th onClick={() => handleSort('id')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
+                      Transaction ID {renderSortIndicator('id')}
+                    </th>
+                    <th style={{ padding: '14px 18px' }}>Student / Customer</th>
+                    <th style={{ padding: '14px 18px' }}>Payment Method</th>
+                    <th onClick={() => handleSort('totalAmount')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
+                      Amount (₹) {renderSortIndicator('totalAmount')}
+                    </th>
+                    <th style={{ padding: '14px 18px' }}>Status</th>
+                    <th onClick={() => handleSort('createdAt')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
+                      Date {renderSortIndicator('createdAt')}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+                        Loading student transaction records...
+                      </td>
+                    </tr>
+                  ) : paginatedData.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <CreditCard size={32} style={{ opacity: 0.3, margin: '0 auto 8px', display: 'block' }} />
+                        No student payment transactions found matching your criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedData.map((order) => (
+                      <tr key={order.id} style={{ borderBottom: '1px solid var(--neu-border-subtle)', transition: 'background 150ms ease' }}>
+                        <td style={{ padding: '14px 18px', fontWeight: 700, color: 'var(--primary-blue)' }}>
+                          #TXN-{String(order.id).padStart(4, '0')}
+                        </td>
+                        <td style={{ padding: '14px 18px' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{order.User ? order.User.name : 'Walk-in Customer'}</div>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{order.User ? order.User.email : 'N/A'}</div>
+                        </td>
+                        <td style={{ padding: '14px 18px', color: 'var(--text-muted)' }}>
+                          RAZORPAY (Online)
+                        </td>
+                        <td style={{ padding: '14px 18px', fontWeight: 700, color: 'var(--status-success)', fontSize: '0.95rem' }}>
+                          +₹{parseFloat(order.totalAmount || 0).toFixed(2)}
+                        </td>
+                        <td style={{ padding: '14px 18px' }}>
+                          <StatusBadge status={order.paymentStatus || 'PAID'} />
+                        </td>
+                        <td style={{ padding: '14px 18px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                          {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <CenteredPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          </GlassCard>
         )}
 
-        {/* Tab 2: Purchase Transactions Table */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 2: PURCHASE TRANSACTIONS TABLE                              */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
         {activeTab === 'purchase' && (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="glass-table">
-              <thead>
-                <tr>
-                  <th>BATCH ID</th>
-                  <th>CATEGORY</th>
-                  <th>PRODUCT</th>
-                  <th>PURCHASED FROM</th>
-                  <th>UNITS ADDED</th>
-                  <th>PURCHASE RATE</th>
-                  <th>TOTAL COST</th>
-                  <th>DATE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchaseLoading ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading purchase batches...</td></tr>
-                ) : paginatedData.length === 0 ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>No purchase batches found.</td></tr>
-                ) : paginatedData.map((p) => (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 800, color: 'var(--primary-purple)' }}>#PURCH-{String(p.id).padStart(4, '0')}</td>
-                    <td>
-                      <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '0.78rem', background: 'rgba(124,58,237,0.1)', color: 'var(--primary-purple)', fontWeight: 600 }}>
-                        {p.categoryName || 'General'}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 700 }}>{p.productName}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Store size={14} color="#059669" />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.purchasedFrom || 'Wholesale Supplier'}</span>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 700, color: 'var(--primary-blue)' }}>+{p.addedQuantity} units</td>
-                    <td style={{ fontWeight: 600 }}>₹{parseFloat(p.purchaseRatePerUnit || 0).toFixed(2)}</td>
-                    <td style={{ fontWeight: 800, color: '#ef4444' }}>-₹{parseFloat(p.totalPurchaseCost || 0).toFixed(2)}</td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
+          <GlassCard style={{ padding: '0px', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(0, 0, 0, 0.02)', borderBottom: '1px solid var(--neu-border-subtle)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <th onClick={() => handleSort('id')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
+                      Batch ID {renderSortIndicator('id')}
+                    </th>
+                    <th style={{ padding: '14px 18px' }}>Product Restocked</th>
+                    <th style={{ padding: '14px 18px' }}>Purchased From (Distributor)</th>
+                    <th style={{ padding: '14px 18px' }}>Units Added</th>
+                    <th style={{ padding: '14px 18px' }}>Batch Rate</th>
+                    <th onClick={() => handleSort('totalPurchaseCost')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
+                      Total Cost (₹) {renderSortIndicator('totalPurchaseCost')}
+                    </th>
+                    <th onClick={() => handleSort('createdAt')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
+                      Date {renderSortIndicator('createdAt')}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {purchaseLoading ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+                        Loading wholesale purchase records...
+                      </td>
+                    </tr>
+                  ) : paginatedData.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <Store size={32} style={{ opacity: 0.3, margin: '0 auto 8px', display: 'block' }} />
+                        No purchase transactions found matching your criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedData.map((item) => (
+                      <tr key={item.id} style={{ borderBottom: '1px solid var(--neu-border-subtle)', transition: 'background 150ms ease' }}>
+                        <td style={{ padding: '14px 18px', fontWeight: 700, color: 'var(--primary-purple)' }}>
+                          #PURCH-{String(item.id).padStart(4, '0')}
+                        </td>
+                        <td style={{ padding: '14px 18px', fontWeight: 600, color: 'var(--text-main)' }}>
+                          {item.productName}
+                        </td>
+                        <td style={{ padding: '14px 18px', color: 'var(--text-main)', fontWeight: 500 }}>
+                          {item.purchasedFrom || 'Authorized Wholesale Supplier'}
+                        </td>
+                        <td style={{ padding: '14px 18px', fontWeight: 600, color: 'var(--primary-blue)' }}>
+                          +{item.addedQuantity} units
+                        </td>
+                        <td style={{ padding: '14px 18px', color: 'var(--text-muted)' }}>
+                          ₹{parseFloat(item.purchaseRatePerUnit || 0).toFixed(2)}
+                        </td>
+                        <td style={{ padding: '14px 18px', fontWeight: 700, color: 'var(--status-danger)', fontSize: '0.95rem' }}>
+                          -₹{parseFloat(item.totalPurchaseCost || 0).toFixed(2)}
+                        </td>
+                        <td style={{ padding: '14px 18px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                          {new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <CenteredPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          </GlassCard>
         )}
 
-        {/* Pagination */}
-        <CenteredPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={activeDataSet.length}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-          itemLabel={activeTab === 'student' ? 'student transactions' : 'purchase batches'}
-        />
       </main>
     </div>
   );

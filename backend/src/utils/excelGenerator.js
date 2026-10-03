@@ -466,6 +466,7 @@ const generateTransactionsExcel = async (transactions, filterInfo = '') => {
   worksheet.columns = [
     { key: 'id', width: 14 },
     { key: 'orderId', width: 14 },
+    { key: 'category', width: 22 },
     { key: 'customerName', width: 26 },
     { key: 'amount', width: 18 },
     { key: 'paymentMethod', width: 18 },
@@ -474,7 +475,7 @@ const generateTransactionsExcel = async (transactions, filterInfo = '') => {
     { key: 'date', width: 24 }
   ];
 
-  worksheet.mergeCells('A1:H1');
+  worksheet.mergeCells('A1:I1');
   const titleCell = worksheet.getCell('A1');
   titleCell.value = 'NEC CAMPUS STORE — STUDENT PAYMENT TRANSACTIONS AUDIT';
   titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
@@ -486,7 +487,7 @@ const generateTransactionsExcel = async (transactions, filterInfo = '') => {
   };
   worksheet.getRow(1).height = 32;
 
-  worksheet.mergeCells('A2:H2');
+  worksheet.mergeCells('A2:I2');
   const metaCell = worksheet.getCell('A2');
   metaCell.value = (filterInfo || 'Scope: Overall Transactions') + '  •  Exported on: ' + new Date().toLocaleString('en-IN') + '  •  Total Txns: ' + transactions.length;
   metaCell.font = { italic: true, size: 10, color: { argb: '374151' } };
@@ -504,6 +505,7 @@ const generateTransactionsExcel = async (transactions, filterInfo = '') => {
   const headers = [
     'Txn ID',
     'Order ID',
+    'Category',
     'Customer Name',
     'Amount (₹)',
     'Payment Method',
@@ -540,6 +542,7 @@ const generateTransactionsExcel = async (transactions, filterInfo = '') => {
     const row = worksheet.addRow({
       id: '#TXN-' + String(t.id).padStart(4, '0'),
       orderId: '#ORD-' + String(t.orderId || t.id).padStart(4, '0'),
+      category: t.category || t.categoryName || (t.Order && t.Order.items ? t.Order.items.map(i => i.Product?.Category?.name).filter(Boolean).join(', ') : 'Stationery'),
       customerName: t.User ? t.User.name : (t.customerName || 'Student Customer'),
       amount: '₹' + amt.toFixed(2),
       paymentMethod: t.paymentMethod || 'RAZORPAY (Online UPI/Cards)',
@@ -571,7 +574,8 @@ const generateTransactionsExcel = async (transactions, filterInfo = '') => {
 
   const summaryRow = worksheet.addRow({
     id: 'TOTAL / SUMMARY',
-    orderId: transactions.length + ' Txns',
+    orderId: transactions.length + ' Transactions',
+    category: '-',
     customerName: '-',
     amount: '₹' + totalAmount.toFixed(2),
     paymentMethod: '-',

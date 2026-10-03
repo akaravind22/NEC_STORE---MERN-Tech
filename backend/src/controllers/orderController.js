@@ -122,7 +122,7 @@ const createOrder = async (req, res, next) => {
 
     const createdOrder = await Order.findByPk(order.id, {
       include: [
-        { model: OrderItem, as: 'items', include: [{ model: Product }] },
+        { model: OrderItem, as: 'items', include: [{ model: Product, include: [{ model: Category, attributes: ['id', 'name'] }] }] },
         { model: User, attributes: ['id', 'name', 'email', 'phone'] }
       ]
     });
