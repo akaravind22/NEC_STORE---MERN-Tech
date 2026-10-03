@@ -57,7 +57,8 @@ const addStock = async (req, res, next) => {
       newQuantity: newQty,
       previousBuyingPrice: prevBuyingPrice,
       newBuyingPrice: unitBuyingPrice,
-      averageBuyingPrice: parseFloat(weightedAvgPrice.toFixed(2))
+      averageBuyingPrice: parseFloat(weightedAvgPrice.toFixed(2)),
+      supplier: req.body.supplier || req.body.purchasedFrom || 'Authorized Wholesale Supplier'
     }, { transaction: t });
 
     await t.commit();
@@ -113,7 +114,64 @@ const getStockHistory = async (req, res, next) => {
   }
 };
 
+// Get all stock purchase transactions (grouped by batch — each restock = 1 purchase transaction)
+const getPurchaseTransactions = async (req, res, next) => {
+  try {
+    const history = await require('../models').StockHistory.findAll({
+      include: [
+        {
+          model: require('../models').Product,
+          attributes: ['id', 'name', 'image', 'sellingPrice', 'categoryId'],
+          include: [{ model: require('../models').Category, attributes: ['id', 'name'] }]
+        },
+        { model: require('../models').User, as: 'retailer', attributes: ['id', 'name', 'email'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Compute total purchase cost per transaction
+    const transactions = history.map(h => ({
+      id: h.id,
+      productId: h.productId,
+      productName: h.Product?.name || 'Product',
+      productImage: h.Product?.image || null,
+      categoryId: h.Product?.categoryId || null,
+      categoryName: h.Product?.Category?.name || 'General',
+      sellingPrice: parseFloat(h.Product?.sellingPrice || 0),
+      retailer: h.retailer,
+      purchasedFrom: h.supplier || 'Authorized Campus Wholesaler',
+      purchaserName: h.retailer?.name || 'Campus Retailer',
+      purchaserEmail: h.retailer?.email || '',
+      addedQuantity: h.addedQuantity,
+      previousQuantity: h.previousQuantity,
+      newQuantity: h.newQuantity,
+      purchaseRatePerUnit: parseFloat(h.newBuyingPrice),
+      averageCostPrice: parseFloat(h.averageBuyingPrice),
+      previousCostPrice: parseFloat(h.previousBuyingPrice),
+      totalPurchaseCost: parseFloat((h.addedQuantity * h.newBuyingPrice).toFixed(2)),
+      createdAt: h.createdAt
+    }));
+
+    // Summary stats
+    const totalSpent = transactions.reduce((s, t) => s + t.totalPurchaseCost, 0);
+    const totalUnits = transactions.reduce((s, t) => s + t.addedQuantity, 0);
+
+    return res.status(200).json({
+      success: true,
+      transactions,
+      summary: {
+        totalTransactions: transactions.length,
+        totalSpent: parseFloat(totalSpent.toFixed(2)),
+        totalUnits
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   addStock,
-  getStockHistory
+  getStockHistory,
+  getPurchaseTransactions
 };

@@ -51,7 +51,8 @@ const AddEditProductPage = () => {
     buyingPrice: '',
     sellingPrice: '',
     quantity: '',
-    lowStockThreshold: '5'
+    lowStockThreshold: '5',
+    supplier: ''
   });
 
   useEffect(() => {
@@ -481,6 +482,39 @@ const AddEditProductPage = () => {
                 onChange={handleChange}
                 required
               />
+            </div>
+
+            {/* Purchased From (Distributor / Supplier) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <GlassInput
+                label="Purchased From (Distributor / Supplier Name)"
+                name="supplier"
+                placeholder="e.g. Casio India Authorized Distributor, ITC Classmate Wholesale..."
+                value={formData.supplier}
+                onChange={handleChange}
+              />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '-4px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Suggested Distributors:</span>
+                {['ITC Classmate Direct', 'Casio India Distributor', 'Western Digital / SanDisk Wholesale', 'Navneet Publications Depot', 'Apex Lab Supplies', 'RoboElements Tech'].map((dist, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, supplier: dist }))}
+                    style={{
+                      background: formData.supplier === dist ? 'var(--primary-purple, #7c3aed)' : 'var(--card-bg, #ffffff)',
+                      color: formData.supplier === dist ? '#ffffff' : 'var(--text-main, #334155)',
+                      border: '1px solid var(--neu-border-subtle, #cbd5e1)',
+                      borderRadius: '8px',
+                      padding: '2px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {dist}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <GlassInput

@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   TrendingUp,
   CreditCard,
+  ShoppingCart,
   FileSpreadsheet,
   Users,
   Bell,
@@ -39,6 +40,7 @@ const Sidebar = () => {
     { label: 'Customer Orders', path: '/retailer/orders', icon: ShoppingBag },
     { label: 'Sales Analytics', path: '/retailer/sales', icon: TrendingUp },
     { label: 'Transactions', path: '/retailer/transactions', icon: CreditCard },
+    { label: 'Purchases', path: '/retailer/purchases', icon: ShoppingCart },
     { label: 'Excel Reports', path: '/retailer/reports', icon: FileSpreadsheet },
     { label: 'Notifications', path: '/retailer/notifications', icon: Bell },
     { label: 'My Profile', path: '/retailer/profile', icon: User }

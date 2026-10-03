@@ -270,6 +270,11 @@ const StockHistory = sequelize.define('StockHistory', {
   averageBuyingPrice: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
+  },
+  supplier: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'Authorized Campus Wholesaler'
   }
 }, { tableName: 'stock_history', timestamps: true });
 

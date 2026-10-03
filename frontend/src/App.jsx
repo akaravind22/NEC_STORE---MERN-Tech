@@ -30,6 +30,7 @@ import StockHistoryPage from './pages/retailer/StockHistoryPage';
 import OrderListPage from './pages/retailer/OrderListPage';
 import SalesAnalyticsPage from './pages/retailer/SalesAnalyticsPage';
 import TransactionsPage from './pages/retailer/TransactionsPage';
+import PurchasePage from './pages/retailer/PurchasePage';
 import ReportsPage from './pages/retailer/ReportsPage';
 import StoreTimingsPage from './pages/retailer/StoreTimingsPage';
 
@@ -200,6 +201,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['RETAILER', 'ADMIN']}>
               <TransactionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/retailer/purchases"
+          element={
+            <ProtectedRoute allowedRoles={['RETAILER', 'ADMIN']}>
+              <PurchasePage />
             </ProtectedRoute>
           }
         />

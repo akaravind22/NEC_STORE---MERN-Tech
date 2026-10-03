@@ -1,5 +1,5 @@
 const ExcelJS = require('exceljs');
-const { Product, Category } = require('../models');
+const { Product, Category, StockHistory } = require('../models');
 const { Op } = require('sequelize');
 
 // Get all products with search, filtering, and sorting
@@ -91,16 +91,33 @@ const createProduct = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Quantity and low stock threshold cannot be negative.' });
     }
 
+    const initQty = parseInt(quantity || 0);
+    const numBuyingPrice = parseFloat(buyingPrice);
+
     const product = await Product.create({
       name,
       categoryId,
       description: description || '',
       image: image || 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=60',
-      buyingPrice: parseFloat(buyingPrice),
+      buyingPrice: numBuyingPrice,
       sellingPrice: parseFloat(sellingPrice),
-      quantity: parseInt(quantity || 0),
+      quantity: initQty,
       lowStockThreshold: parseInt(lowStockThreshold || 5)
     });
+
+    // If initial quantity > 0, log in StockHistory so it automatically shows in Purchases & Purchase Transactions
+    if (initQty > 0) {
+      await StockHistory.create({
+        productId: product.id,
+        retailerId: req.user ? req.user.id : 2,
+        previousQuantity: 0,
+        addedQuantity: initQty,
+        newQuantity: initQty,
+        previousBuyingPrice: 0.00,
+        newBuyingPrice: numBuyingPrice,
+        averageBuyingPrice: numBuyingPrice
+      });
+    }
 
     const fullProduct = await Product.findByPk(product.id, {
       include: [{ model: Category }]
@@ -205,6 +222,7 @@ const downloadTemplate = async (req, res, next) => {
     worksheet.columns = [
       { header: 'Product Name *', key: 'name', width: 36 },
       { header: 'Category *', key: 'category', width: 22 },
+      { header: 'Distributor / Supplier', key: 'supplier', width: 32 },
       { header: 'Buying Price (₹)', key: 'buyingPrice', width: 18 },
       { header: 'Selling Price (₹) *', key: 'sellingPrice', width: 20 },
       { header: 'Quantity (Stock)', key: 'quantity', width: 18 },
@@ -237,11 +255,12 @@ const downloadTemplate = async (req, res, next) => {
       };
     });
 
-    // Sample data rows
+    // Sample data rows with realistic distributors
     const sampleRows = [
       {
         name: 'Classmate Octane Gel Pen (Pack of 5)',
         category: 'Stationery',
+        supplier: 'ITC Classmate Direct Wholesale',
         buyingPrice: 45.00,
         sellingPrice: 60.00,
         quantity: 50,
@@ -252,6 +271,7 @@ const downloadTemplate = async (req, res, next) => {
       {
         name: 'Casio Scientific Calculator FX-991CW',
         category: 'Electronics',
+        supplier: 'Casio India Authorized Distributor',
         buyingPrice: 1350.00,
         sellingPrice: 1550.00,
         quantity: 20,
@@ -262,6 +282,7 @@ const downloadTemplate = async (req, res, next) => {
       {
         name: 'Higher Engineering Mathematics - B.S. Grewal',
         category: 'Books',
+        supplier: 'National Academic Press & Book Hub',
         buyingPrice: 650.00,
         sellingPrice: 780.00,
         quantity: 15,
@@ -272,6 +293,7 @@ const downloadTemplate = async (req, res, next) => {
       {
         name: 'NEC Campus Identity Lanyard & Badge Holder',
         category: 'Accessories',
+        supplier: 'Campus Apparel & Lifestyle Wholesalers',
         buyingPrice: 25.00,
         sellingPrice: 40.00,
         quantity: 120,
@@ -338,7 +360,8 @@ const bulkImportProducts = async (req, res, next) => {
         const headerText = String(cell.value || '').trim().toLowerCase();
         if (headerText.includes('name') || headerText.includes('product')) colMap.name = colNumber;
         else if (headerText.includes('cat')) colMap.category = colNumber;
-        else if (headerText.includes('buy') || headerText.includes('cost') || headerText.includes('purchase')) colMap.buyingPrice = colNumber;
+        else if (headerText.includes('distrib') || headerText.includes('suppl') || headerText.includes('vendor') || headerText.includes('from') || headerText.includes('dealer')) colMap.supplier = colNumber;
+        else if (headerText.includes('buy') || headerText.includes('cost') || headerText.includes('purchase rate')) colMap.buyingPrice = colNumber;
         else if (headerText.includes('sell') || headerText.includes('price') || headerText.includes('mrp')) colMap.sellingPrice = colNumber;
         else if (headerText.includes('quant') || headerText.includes('qty') || headerText.includes('stock')) colMap.quantity = colNumber;
         else if (headerText.includes('thresh') || headerText.includes('low') || headerText.includes('alert')) colMap.lowStockThreshold = colNumber;
@@ -349,12 +372,13 @@ const bulkImportProducts = async (req, res, next) => {
       // Default fallbacks if header keywords weren't exact
       if (!colMap.name) colMap.name = 1;
       if (!colMap.category) colMap.category = 2;
-      if (!colMap.buyingPrice) colMap.buyingPrice = 3;
-      if (!colMap.sellingPrice) colMap.sellingPrice = 4;
-      if (!colMap.quantity) colMap.quantity = 5;
-      if (!colMap.lowStockThreshold) colMap.lowStockThreshold = 6;
-      if (!colMap.description) colMap.description = 7;
-      if (!colMap.image) colMap.image = 8;
+      if (!colMap.supplier) colMap.supplier = 3;
+      if (!colMap.buyingPrice) colMap.buyingPrice = 4;
+      if (!colMap.sellingPrice) colMap.sellingPrice = 5;
+      if (!colMap.quantity) colMap.quantity = 6;
+      if (!colMap.lowStockThreshold) colMap.lowStockThreshold = 7;
+      if (!colMap.description) colMap.description = 8;
+      if (!colMap.image) colMap.image = 9;
 
       const getCellValue = (row, colIndex) => {
         if (!colIndex) return '';
@@ -380,6 +404,7 @@ const bulkImportProducts = async (req, res, next) => {
           rowNumber: r,
           name: nameVal,
           category: String(getCellValue(row, colMap.category) || 'Stationery').trim(),
+          supplier: String(getCellValue(row, colMap.supplier) || '').trim() || 'Authorized Campus Wholesaler',
           buyingPrice: getCellValue(row, colMap.buyingPrice),
           sellingPrice: sellingPriceVal,
           quantity: getCellValue(row, colMap.quantity),
@@ -456,16 +481,40 @@ const bulkImportProducts = async (req, res, next) => {
       // Check if product with this exact name already exists
       let existing = await Product.findOne({ where: { name: item.name } });
       if (existing) {
+        const prevQty = existing.quantity;
+        const prevBuyingPrice = parseFloat(existing.buyingPrice);
+        const newQty = prevQty + numQuantity;
+        const finalBuyingPrice = numBuyingPrice > 0 ? numBuyingPrice : prevBuyingPrice;
+
+        const weightedAvgPrice = prevQty === 0
+          ? finalBuyingPrice
+          : ((prevQty * prevBuyingPrice) + (numQuantity * finalBuyingPrice)) / (newQty || 1);
+
         // Update product
         await existing.update({
           categoryId: category.id,
-          buyingPrice: numBuyingPrice > 0 ? numBuyingPrice : existing.buyingPrice,
+          buyingPrice: parseFloat(weightedAvgPrice.toFixed(2)),
           sellingPrice: numSellingPrice,
-          quantity: existing.quantity + numQuantity,
+          quantity: newQty,
           lowStockThreshold: numThreshold,
           description: item.description || existing.description,
           image: item.image || existing.image
         });
+
+        if (numQuantity > 0) {
+          await StockHistory.create({
+            productId: existing.id,
+            retailerId: req.user ? req.user.id : 2,
+            previousQuantity: prevQty,
+            addedQuantity: numQuantity,
+            newQuantity: newQty,
+            previousBuyingPrice: prevBuyingPrice,
+            newBuyingPrice: finalBuyingPrice,
+            averageBuyingPrice: parseFloat(weightedAvgPrice.toFixed(2)),
+            supplier: item.supplier || item.purchasedFrom || 'Bulk Import Distributor'
+          });
+        }
+
         updatedCount++;
         importedProducts.push(existing);
       } else {
@@ -480,6 +529,21 @@ const bulkImportProducts = async (req, res, next) => {
           description: item.description || item.name + ' for NEC campus store',
           image: finalImage
         });
+
+        if (numQuantity > 0) {
+          await StockHistory.create({
+            productId: newProd.id,
+            retailerId: req.user ? req.user.id : 2,
+            previousQuantity: 0,
+            addedQuantity: numQuantity,
+            newQuantity: numQuantity,
+            previousBuyingPrice: 0.00,
+            newBuyingPrice: numBuyingPrice,
+            averageBuyingPrice: numBuyingPrice,
+            supplier: item.supplier || item.purchasedFrom || 'Bulk Import Distributor'
+          });
+        }
+
         createdCount++;
         importedProducts.push(newProd);
       }

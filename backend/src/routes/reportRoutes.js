@@ -12,5 +12,6 @@ router.get('/stock', reportController.downloadStockReport);
 router.get('/stock-history', reportController.downloadStockHistoryReport);
 router.get('/incoming-stock', reportController.downloadStockHistoryReport);
 router.get('/transactions', reportController.downloadTransactionsReport);
+router.get('/purchases', reportController.downloadPurchasesReport);
 
 module.exports = router;

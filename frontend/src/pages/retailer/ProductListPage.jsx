@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import ExcelJS from 'exceljs';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -115,6 +116,208 @@ const ProductListPage = () => {
   };
 
   // Download Excel template
+  
+  const [downloadingExport, setDownloadingExport] = useState(false);
+
+  const handleExportProductsExcel = async () => {
+    const dataToExport = filteredProducts;
+    if (dataToExport.length === 0) {
+      addToast('No products found to export.', 'error');
+      return;
+    }
+
+    setDownloadingExport(true);
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Product Catalog');
+
+      worksheet.columns = [
+        { key: 'id', width: 14 },
+        { key: 'category', width: 22 },
+        { key: 'name', width: 36 },
+        { key: 'buyingPrice', width: 18 },
+        { key: 'sellingPrice', width: 18 },
+        { key: 'quantity', width: 16 },
+        { key: 'threshold', width: 20 },
+        { key: 'status', width: 18 },
+        { key: 'totalValuation', width: 22 }
+      ];
+
+      // 1. Title Banner
+      worksheet.mergeCells('A1:I1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = 'NEC CAMPUS STORE — PRODUCT CATALOG & INVENTORY';
+      titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      titleCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '1E40AF' }
+      };
+      worksheet.getRow(1).height = 32;
+
+      // 2. Metadata Banner
+      const isFiltered = searchTerm || selectedCategory !== 'ALL' || selectedStockFilter !== 'ALL';
+      let filterDetails = [];
+      if (searchTerm) filterDetails.push('Search: "' + searchTerm + '"');
+      if (selectedCategory !== 'ALL') {
+        const catObj = categories.find(c => String(c.id) === String(selectedCategory));
+        filterDetails.push('Category: ' + (catObj ? catObj.name : selectedCategory));
+      }
+      if (selectedStockFilter !== 'ALL') filterDetails.push('Stock Status: ' + selectedStockFilter);
+
+      worksheet.mergeCells('A2:I2');
+      const metaCell = worksheet.getCell('A2');
+      metaCell.value = (isFiltered ? 'Scope: Filtered (' + filterDetails.join(' | ') + ')' : 'Scope: Overall Product Catalog') + 
+        '  •  Exported on: ' + new Date().toLocaleString('en-IN') + '  •  Total Products: ' + dataToExport.length;
+      metaCell.font = { italic: true, size: 10, color: { argb: '374151' } };
+      metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      metaCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'F3F4F6' }
+      };
+      worksheet.getRow(2).height = 22;
+
+      worksheet.getRow(3).values = [];
+      worksheet.getRow(3).height = 10;
+
+      // 3. Table Headers
+      const headers = [
+        'Product ID',
+        'Category',
+        'Product Name',
+        'Buying Cost (₹)',
+        'Selling Price (₹)',
+        'Current Stock',
+        'Low Stock Threshold',
+        'Stock Status',
+        'Total Valuation (₹)'
+      ];
+
+      const headerRow = worksheet.getRow(4);
+      headerRow.values = headers;
+      headerRow.height = 26;
+      headerRow.font = { bold: true, color: { argb: 'FFFFFF' }, size: 10.5 };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '2563EB' }
+      };
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+      headerRow.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'medium', color: { argb: '1E40AF' } },
+          bottom: { style: 'medium', color: { argb: '1E40AF' } },
+          left: { style: 'thin', color: { argb: '3B82F6' } },
+          right: { style: 'thin', color: { argb: '3B82F6' } }
+        };
+      });
+
+      let totalStockUnits = 0;
+      let totalInventoryValuation = 0;
+
+      dataToExport.forEach((p, idx) => {
+        const qty = p.quantity || 0;
+        const bPrice = parseFloat(p.buyingPrice || 0);
+        const sPrice = parseFloat(p.sellingPrice || 0);
+        const val = qty * bPrice;
+        totalStockUnits += qty;
+        totalInventoryValuation += val;
+
+        const isOut = qty === 0;
+        const isLow = qty > 0 && qty <= (p.lowStockThreshold || 10);
+        const statusText = isOut ? 'OUT OF STOCK' : isLow ? 'LOW STOCK' : 'HEALTHY';
+
+        const row = worksheet.addRow({
+          id: '#PROD-' + String(p.id).padStart(4, '0'),
+          category: p.Category ? p.Category.name : (p.categoryName || 'General'),
+          name: p.name,
+          buyingPrice: '₹' + bPrice.toFixed(2),
+          sellingPrice: '₹' + sPrice.toFixed(2),
+          quantity: qty + ' units',
+          threshold: (p.lowStockThreshold || 10) + ' units',
+          status: statusText,
+          totalValuation: '₹' + val.toFixed(2)
+        });
+
+        row.height = 22;
+        row.alignment = { vertical: 'middle' };
+
+        if (idx % 2 === 1) {
+          row.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'F9FAFB' }
+          };
+        }
+
+        const statusCell = row.getCell(8);
+        if (isOut) statusCell.font = { bold: true, color: { argb: 'DC2626' } };
+        else if (isLow) statusCell.font = { bold: true, color: { argb: 'D97706' } };
+        else statusCell.font = { bold: true, color: { argb: '16A34A' } };
+
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'E5E7EB' } },
+            bottom: { style: 'thin', color: { argb: 'E5E7EB' } },
+            left: { style: 'thin', color: { argb: 'E5E7EB' } },
+            right: { style: 'thin', color: { argb: 'E5E7EB' } }
+          };
+        });
+      });
+
+      // 5. Grand Summary Row
+      const summaryRow = worksheet.addRow({
+        id: 'TOTAL / SUMMARY',
+        category: '-',
+        name: dataToExport.length + ' Products',
+        buyingPrice: '-',
+        sellingPrice: '-',
+        quantity: totalStockUnits + ' total units',
+        threshold: '-',
+        status: '-',
+        totalValuation: '₹' + totalInventoryValuation.toFixed(2)
+      });
+
+      summaryRow.height = 28;
+      summaryRow.font = { bold: true, size: 11, color: { argb: '1E40AF' } };
+      summaryRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'DBEAFE' }
+      };
+      summaryRow.alignment = { vertical: 'middle' };
+      summaryRow.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'medium', color: { argb: '2563EB' } },
+          bottom: { style: 'double', color: { argb: '2563EB' } }
+        };
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fileScope = isFiltered ? 'Filtered' : 'Overall';
+      link.setAttribute('download', 'NEC_Store_Products_' + fileScope + '_' + Date.now() + '.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      addToast('Downloaded ' + (isFiltered ? 'filtered products (' + dataToExport.length + ' items)' : 'overall product catalog') + ' successfully!', 'success');
+    } catch (err) {
+      console.error('Export error:', err);
+      addToast('Failed to export product Excel report.', 'error');
+    } finally {
+      setDownloadingExport(false);
+    }
+  };
+
   const handleDownloadTemplate = async () => {
     try {
       const res = await getAxios().get('/products/template', { responseType: 'blob' });
@@ -706,7 +909,7 @@ const ProductListPage = () => {
           }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>Download Pre-formatted Template</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Includes styled headers and sample product rows.</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Includes Product Name, Category, <strong>Distributor / Supplier</strong>, Buying Price, Selling Price, and Stock.</div>
             </div>
             <GlassButton
               variant="secondary"
