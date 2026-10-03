@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingBag, 
-  Eye, 
+  Eye,
+  Bell, 
   CheckCircle2, 
   Clock, 
   Truck, 
@@ -32,6 +33,23 @@ const OrderListPage = () => {
   const [downloading, setDownloading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updating, setUpdating] = useState(false);
+
+  const [remindingId, setRemindingId] = useState(null);
+
+  const handleSendPickupReminder = async (orderId, customerName) => {
+    setRemindingId(orderId);
+    try {
+      const res = await getAxios().post('/orders/' + orderId + '/remind');
+      if (res.data.success) {
+        addToast('Pickup reminder notification sent to ' + (customerName || 'student') + '!', 'success');
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to send pickup reminder.', 'error');
+    } finally {
+      setRemindingId(null);
+    }
+  };
+
 
   // Search & Filter & Sort States
   const [search, setSearch] = useState('');
@@ -627,15 +645,41 @@ const OrderListPage = () => {
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                       {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <GlassButton
-                        variant="secondary"
-                        size="sm"
-                        icon={Eye}
-                        onClick={() => setSelectedOrder(o)}
-                      >
-                        Details
-                      </GlassButton>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        {o.deliveryStatus !== 'DELIVERED' && (
+                          <button
+                            onClick={() => handleSendPickupReminder(o.id, o.User?.name)}
+                            disabled={remindingId === o.id}
+                            title="Send 1-Click Pickup Alert to Student"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '6px 11px',
+                              borderRadius: 'var(--radius-sm, 8px)',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: '1px solid rgba(37, 99, 235, 0.28)',
+                              background: 'rgba(37, 99, 235, 0.1)',
+                              color: 'var(--primary-blue)',
+                              transition: 'all 180ms ease'
+                            }}
+                          >
+                            <Bell size={13} className={remindingId === o.id ? 'animate-bounce' : ''} />
+                            <span>{remindingId === o.id ? 'Sending...' : 'Remind'}</span>
+                          </button>
+                        )}
+                        <GlassButton
+                          variant="secondary"
+                          size="sm"
+                          icon={Eye}
+                          onClick={() => setSelectedOrder(o)}
+                        >
+                          Details
+                        </GlassButton>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -701,18 +745,34 @@ const OrderListPage = () => {
 
             {/* Status Update Actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '10px' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Update Order / Delivery:</div>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Update Order / Delivery Actions:</div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 {selectedOrder.deliveryStatus !== 'DELIVERED' && (
-                  <GlassButton
-                    variant="primary"
-                    size="sm"
-                    icon={Truck}
-                    disabled={updating}
-                    onClick={() => handleUpdateStatus(selectedOrder.id, 'COMPLETED', 'DELIVERED')}
-                  >
-                    Mark Delivered
-                  </GlassButton>
+                  <>
+                    <GlassButton
+                      variant="primary"
+                      size="sm"
+                      icon={Truck}
+                      disabled={updating}
+                      onClick={() => handleUpdateStatus(selectedOrder.id, 'COMPLETED', 'DELIVERED')}
+                    >
+                      Mark Delivered
+                    </GlassButton>
+                    <GlassButton
+                      variant="secondary"
+                      size="sm"
+                      icon={Bell}
+                      disabled={updating || remindingId === selectedOrder.id}
+                      onClick={() => handleSendPickupReminder(selectedOrder.id, selectedOrder.User?.name)}
+                      style={{
+                        background: 'rgba(37, 99, 235, 0.1)',
+                        borderColor: 'rgba(37, 99, 235, 0.3)',
+                        color: 'var(--primary-blue)'
+                      }}
+                    >
+                      {remindingId === selectedOrder.id ? 'Sending Alert...' : 'Send Pickup Reminder'}
+                    </GlassButton>
+                  </>
                 )}
                 {selectedOrder.orderStatus === 'CREATED' && (
                   <GlassButton

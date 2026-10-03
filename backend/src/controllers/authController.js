@@ -292,11 +292,100 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+
+// Google OAuth 2.0 Single Sign-On / Registration
+const googleLogin = async (req, res, next) => {
+  try {
+    const { credential, email, name, picture, googleId } = req.body;
+    let userEmail = email;
+    let userName = name;
+    let userGoogleId = googleId;
+
+    // Decode Google JWT Credential if provided (One-Tap / Identity Services token)
+    if (credential) {
+      try {
+        const base64Url = credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
+        const payload = JSON.parse(jsonPayload);
+        userEmail = payload.email;
+        userName = payload.name || payload.given_name;
+        userGoogleId = payload.sub;
+      } catch (e) {
+        console.error('Google credential parse error:', e);
+      }
+    }
+
+    if (!userEmail) {
+      return res.status(400).json({ success: false, message: 'Invalid Google OAuth credential. Email address is required.' });
+    }
+
+    // Search user by email
+    let user = await User.findOne({ where: { email: userEmail } });
+
+    if (user) {
+      if (user.status === 'SUSPENDED') {
+        return res.status(403).json({ success: false, message: 'Account is suspended. Please contact store administrator.' });
+      }
+      if (!user.name && userName) {
+        user.name = userName;
+        await user.save();
+      }
+    } else {
+      // Auto-register new customer account via Google OAuth
+      const randomPassword = Math.random().toString(36).slice(-10) + 'A1!';
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await User.create({
+        name: userName || userEmail.split('@')[0],
+        email: userEmail,
+        role: 'CUSTOMER',
+        status: 'ACTIVE',
+        password: hashedPassword
+      });
+
+      // Broadcast notification to Admin
+      await Notification.create({
+        userId: null,
+        title: 'New Student Google Signup',
+        message: 'Student ' + user.name + ' (' + user.email + ') registered using Google OAuth.',
+        type: 'USER_REGISTERED'
+      });
+    }
+
+    // Generate JWT Token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'nec_store_super_secret_jwt_key_2026_college_app',
+      { expiresIn: '7d' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Signed in with Google as ' + user.name + '!',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        rollNumber: user.rollNumber,
+        department: user.department,
+        phone: user.phone,
+        role: user.role,
+        status: user.status
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   login,
   register,
   sendOtp,
   verifyOtp,
   getMe,
-  updateProfile
+  updateProfile,
+  googleLogin
 };

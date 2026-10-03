@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, ArrowRight, KeyRound, Lock, User, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useToastStore } from '../../store/useToastStore';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
 import GlassCard from '../../components/common/GlassCard';
 import GlassInput from '../../components/common/GlassInput';
 import GlassButton from '../../components/common/GlassButton';
-import { useAuthStore } from '../../store/useAuthStore';
-import Navbar from '../../components/layout/Navbar';
-import Footer from '../../components/layout/Footer';
+import GoogleOAuthButton from '../../components/common/GoogleOAuthButton';
+import { KeyRound, ArrowRight, Eye, EyeOff, Sparkles, User, ShoppingBag, Shield } from 'lucide-react';
 
 const LoginPage = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading } = useAuthStore();
+  const { addToast } = useToastStore();
   const navigate = useNavigate();
 
   const handleRedirect = (role) => {
@@ -23,41 +26,33 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!identifier || !password) return;
-
     const res = await login(identifier, password);
     if (res?.success) {
       handleRedirect(res.user?.role);
     }
   };
 
-  const handleQuickDemo = async (demoEmail, demoPassword = 'Password123') => {
+  const handleQuickDemo = async (demoEmail) => {
     setIdentifier(demoEmail);
-    setPassword(demoPassword);
-    const res = await login(demoEmail, demoPassword);
+    setPassword('Password123');
+    const res = await login(demoEmail, 'Password123');
     if (res?.success) {
       handleRedirect(res.user?.role);
     }
   };
 
   return (
-    <div className="page-fade-enter" style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="page-fade-enter">
       <Navbar />
 
-      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-        <div style={{ width: '100%', maxWidth: '840px' }}>
+      <main className="app-container" style={{ minHeight: 'calc(100vh - 250px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px 16px' }}>
+        <div style={{ width: '100%', maxWidth: '820px' }}>
           <GlassCard hover={false} style={{ padding: '0', overflow: 'hidden' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-
-              {/* Left Side — Direct Password Login Form */}
-              <div style={{
-                flex: '1 1 320px',
-                padding: '32px 30px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center'
-              }}>
-                <div style={{ marginBottom: '18px' }}>
+              
+              {/* Left Side � Login Form */}
+              <div style={{ flex: '1 1 380px', padding: '36px 32px' }}>
+                <div style={{ marginBottom: '20px' }}>
                   <div
                     style={{
                       width: '46px',
@@ -132,70 +127,93 @@ const LoginPage = () => {
                   </GlassButton>
                 </form>
 
+                {/* Divider */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0 16px 0' }}>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--neu-border-subtle, #e2e8f0)' }}></div>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Or Continue With
+                  </span>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--neu-border-subtle, #e2e8f0)' }}></div>
+                </div>
+
+                {/* Styled Google OAuth 2.0 Button */}
+                <div style={{ marginBottom: '16px' }}>
+                  <GoogleOAuthButton label="Continue with Google" />
+                </div>
+
                 {/* Quick 1-Click Demo Login */}
-                <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid var(--glass-border-subtle)' }}>
-                  <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    ⚡ 1-Click Instant Demo Login
+                <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--glass-border-subtle)' }}>
+                  <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                    <Sparkles size={13} color="var(--primary-blue)" /> 1-Click Instant Demo Login
                   </p>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                     <button
+                      type="button"
                       onClick={() => handleQuickDemo('student1@necstore.com')}
                       style={{
-                        flex: '1 1 auto',
-                        padding: '7px 12px',
-                        borderRadius: '9px',
-                        background: 'rgba(56, 189, 248, 0.12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        background: 'rgba(56, 189, 248, 0.1)',
                         border: '1px solid rgba(56, 189, 248, 0.25)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
                         color: 'var(--primary-blue)',
                         cursor: 'pointer',
-                        whiteSpace: 'nowrap',
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      🎓 Customer
+                      <User size={13} /> Customer
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleQuickDemo('retailer@necstore.com')}
                       style={{
-                        flex: '1 1 auto',
-                        padding: '7px 12px',
-                        borderRadius: '9px',
-                        background: 'rgba(124, 58, 237, 0.12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        background: 'rgba(124, 58, 237, 0.1)',
                         border: '1px solid rgba(124, 58, 237, 0.25)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
                         color: 'var(--primary-purple)',
                         cursor: 'pointer',
-                        whiteSpace: 'nowrap',
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      🏷️ Retailer
+                      <ShoppingBag size={13} /> Retailer
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleQuickDemo('admin@necstore.com')}
                       style={{
-                        flex: '1 1 auto',
-                        padding: '7px 12px',
-                        borderRadius: '9px',
-                        background: 'rgba(239, 68, 68, 0.12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        background: 'rgba(239, 68, 68, 0.1)',
                         border: '1px solid rgba(239, 68, 68, 0.25)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
                         color: 'var(--status-danger)',
                         cursor: 'pointer',
-                        whiteSpace: 'nowrap',
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      ⚙️ Admin
+                      <Shield size={13} /> Admin
                     </button>
                   </div>
                 </div>
 
-                <div style={{ marginTop: '14px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                   Don't have an account?{' '}
                   <Link to="/register" style={{ color: 'var(--primary-blue)', fontWeight: 700, textDecoration: 'none' }}>
                     Register here
@@ -203,7 +221,7 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              {/* Right Side — Illustration */}
+              {/* Right Side � Illustration */}
               <div style={{
                 flex: '1 1 280px',
                 background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #c7d2fe 100%)',

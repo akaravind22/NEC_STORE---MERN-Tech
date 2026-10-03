@@ -45,7 +45,30 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-    // Direct Password Login (Username/Email + Password)
+    
+  // Google OAuth 2.0 Login / Signup Action
+  loginWithGoogle: async (googlePayload) => {
+    set({ loading: true });
+    try {
+      const res = await axios.post(`${API_URL}/auth/google`, googlePayload);
+      if (res.data.success) {
+        const { token, user, message } = res.data;
+        localStorage.setItem('nec_token', token);
+        localStorage.setItem('nec_user', JSON.stringify(user));
+
+        set({ token, user, isAuthenticated: true, loading: false });
+        useToastStore.getState().addToast(message || `Signed in with Google as ${user.name}!`, 'success');
+        return { success: true, user };
+      }
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Google Sign-In failed. Please try again.';
+      useToastStore.getState().addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  },
+
+  // Direct Password Login (Username/Email + Password)
   login: async (identifier, password) => {
     set({ loading: true });
     try {

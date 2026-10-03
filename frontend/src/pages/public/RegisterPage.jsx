@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { GraduationCap, ArrowRight, ShieldCheck, Eye, EyeOff, Lock } from 'lucide-react';
-import GlassCard from '../../components/common/GlassCard';
-import GlassInput from '../../components/common/GlassInput';
-import GlassButton from '../../components/common/GlassButton';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useToastStore } from '../../store/useToastStore';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import GlassCard from '../../components/common/GlassCard';
+import GlassInput from '../../components/common/GlassInput';
+import GlassButton from '../../components/common/GlassButton';
+import GoogleOAuthButton from '../../components/common/GoogleOAuthButton';
+import { GraduationCap, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -28,7 +29,10 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -217,7 +221,19 @@ const RegisterPage = () => {
               </GlassButton>
             </form>
 
-            <div style={{ marginTop: '22px', textAlign: 'center', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '20px 0 16px 0' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--neu-border-subtle, #cbd5e1)' }}></div>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Or Register With</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--neu-border-subtle, #cbd5e1)' }}></div>
+            </div>
+
+            {/* Google OAuth 2.0 1-Click Signup */}
+            <div style={{ marginBottom: '14px' }}>
+              <GoogleOAuthButton label="Sign up with Google" />
+            </div>
+
+            <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
               Already have an account?{' '}
               <Link to="/login" style={{ color: 'var(--primary-blue)', fontWeight: 700, textDecoration: 'none' }}>
                 Login here

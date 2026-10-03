@@ -10,6 +10,7 @@ router.post('/', roleMiddleware('CUSTOMER'), orderController.createOrder);
 router.get('/', orderController.getOrders);
 router.get('/:id', orderController.getOrderById);
 router.put('/:id/status', roleMiddleware('RETAILER', 'ADMIN'), orderController.updateOrderStatus);
+router.post('/:id/remind', roleMiddleware('RETAILER', 'ADMIN'), orderController.sendPickupReminder);
 router.post('/:id/cancel', orderController.cancelOrder);
 
 module.exports = router;

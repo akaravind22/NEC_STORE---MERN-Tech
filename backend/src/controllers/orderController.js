@@ -295,10 +295,55 @@ const cancelOrder = async (req, res, next) => {
   }
 };
 
+
+// Send 1-Click Pickup Reminder Notification to Student
+const sendPickupReminder = async (req, res, next) => {
+  try {
+    const order = await Order.findByPk(req.params.id, {
+      include: [
+        { model: User, attributes: ['id', 'name', 'email'] },
+        { model: OrderItem, as: 'items', include: [{ model: Product, attributes: ['name'] }] }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
+
+    if (order.deliveryStatus === 'DELIVERED') {
+      return res.status(400).json({ success: false, message: 'This order has already been collected/delivered.' });
+    }
+
+    const itemCount = (order.items || []).reduce((sum, item) => sum + item.quantity, 0);
+    const itemsList = (order.items || []).map(i => i.Product ? i.Product.name : 'Item').filter(Boolean);
+    const itemsSummary = itemsList.slice(0, 3).join(', ');
+    const extraCount = itemsList.length > 3 ? ' and ' + (itemsList.length - 3) + ' more item(s)' : '';
+
+    const customerName = order.User ? order.User.name : 'Student';
+    const orderCode = '#ORD-' + String(order.id).padStart(4, '0');
+
+    const notification = await Notification.create({
+      userId: order.userId,
+      title: '📦 Order Ready for Pickup!',
+      message: 'Hello ' + customerName + ', your ' + orderCode + ' (' + itemCount + ' units: ' + itemsSummary + extraCount + ') is packed and ready for collection at the NEC Campus Store counter. Please collect your items during store hours.',
+      type: 'PICKUP_REMINDER'
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Pickup reminder notification sent to ' + customerName + ' successfully!',
+      notification
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createOrder,
   getOrders,
   getOrderById,
   updateOrderStatus,
-  cancelOrder
+  cancelOrder,
+  sendPickupReminder
 };
