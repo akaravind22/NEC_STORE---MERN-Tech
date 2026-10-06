@@ -68,7 +68,8 @@ const TransactionsPage = () => {
       setPurchaseLoading(true);
       const res = await getAxios().get('/stock/purchases');
       if (res.data.success) {
-        setPurchases(res.data.transactions || []);
+        const list = res.data.transactions || res.data.purchases || res.data.data || [];
+        setPurchases(list);
         setPurchaseSummary(res.data.summary || {});
       }
     } catch (err) {
@@ -724,7 +725,7 @@ const TransactionsPage = () => {
                           +{item.addedQuantity} units
                         </td>
                         <td style={{ padding: '14px 18px', color: 'var(--text-muted)' }}>
-                          ₹{parseFloat(item.purchaseRatePerUnit || 0).toFixed(2)}
+                          ₹₹{Math.ceil(parseFloat(item.purchaseRatePerUnit || item.batchRate || item.newBuyingPrice || 0)).toFixed(2)}
                         </td>
                         <td style={{ padding: '14px 18px', fontWeight: 700, color: 'var(--status-danger)', fontSize: '0.95rem' }}>
                           -₹{parseFloat(item.totalPurchaseCost || 0).toFixed(2)}

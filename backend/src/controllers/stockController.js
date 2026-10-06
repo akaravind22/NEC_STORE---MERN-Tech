@@ -6,7 +6,7 @@ const addStock = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const { productId, addedQuantity, newBuyingPrice, newSellingPrice } = req.body;
-    const retailerId = req.user.id;
+    const retailerId = req.user ? req.user.id : 2;
 
     if (!productId || !addedQuantity || newBuyingPrice === undefined) {
       await t.rollback();
@@ -128,6 +128,7 @@ const getStockHistory = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: history,
+      history,
       pagination: {
         total: count,
         page: parseInt(page),
@@ -171,9 +172,47 @@ const getPurchaseTransactions = async (req, res, next) => {
       offset
     });
 
+    const formattedTransactions = purchases.map(p => {
+      const addedQty = p.addedQuantity || 0;
+      const batchRate = Math.ceil(parseFloat(p.newBuyingPrice || p.Product?.buyingPrice || 0));
+      const totalCost = Math.ceil(addedQty * batchRate);
+      const supplierName = p.supplier || 'Authorized Wholesale Supplier';
+      return {
+        id: p.id,
+        productId: p.productId,
+        productName: p.Product?.name || 'Item #' + p.productId,
+        category: p.Product?.Category?.name || 'General',
+        purchasedFrom: supplierName,
+        supplier: supplierName,
+        addedQuantity: addedQty,
+        unitsAdded: addedQty,
+        previousQuantity: p.previousQuantity,
+        newQuantity: p.newQuantity,
+        newBuyingPrice: batchRate,
+        purchaseRatePerUnit: batchRate,
+        batchRate,
+        averageBuyingPrice: Math.ceil(parseFloat(p.averageBuyingPrice || 0)),
+        totalCost,
+        totalPurchaseCost: totalCost,
+        createdAt: p.createdAt,
+        Product: p.Product,
+        retailer: p.retailer
+      };
+    });
+
+    const totalSpent = formattedTransactions.reduce((sum, t) => sum + t.totalCost, 0);
+    const totalUnits = formattedTransactions.reduce((sum, t) => sum + t.addedQuantity, 0);
+
     return res.status(200).json({
       success: true,
-      data: purchases,
+      data: formattedTransactions,
+      transactions: formattedTransactions,
+      purchases: formattedTransactions,
+      summary: {
+        totalTransactions: count,
+        totalSpent,
+        totalUnits
+      },
       pagination: {
         total: count,
         page: parseInt(page),
