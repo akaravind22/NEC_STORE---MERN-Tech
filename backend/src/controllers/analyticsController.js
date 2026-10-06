@@ -161,11 +161,9 @@ const getRetailerStats = async (req, res, next) => {
       }));
 
     // Daily Sales & Order Volume Trend
-    // Determine days between start and end
     const dayDiff = Math.max(1, Math.ceil((filterEnd - filterStart) / (1000 * 60 * 60 * 24)));
     const salesTrend = [];
 
-    // Format days
     for (let i = 0; i < Math.min(dayDiff, 31); i++) {
       const curDate = new Date(filterStart);
       curDate.setDate(curDate.getDate() + i);
@@ -189,16 +187,17 @@ const getRetailerStats = async (req, res, next) => {
     }
 
     // Order Fulfillment Status Breakdown
-    const allOrdersCount = await Order.count();
     const deliveredCount = await Order.count({ where: { deliveryStatus: 'DELIVERED' } });
     const pendingPickupCount = await Order.count({ where: { deliveryStatus: 'NOT_DELIVERED', orderStatus: { [Op.ne]: 'CANCELLED' } } });
     const processingCount = await Order.count({ where: { orderStatus: 'PROCESSING' } });
     const cancelledCount = await Order.count({ where: { orderStatus: 'CANCELLED' } });
+    const createdCount = await Order.count({ where: { orderStatus: 'CREATED' } });
 
     const fulfillmentChart = [
-      { name: 'Delivered / Collected', value: deliveredCount, color: '#16a34a' },
+      { name: 'Delivered', value: deliveredCount, color: '#16a34a' },
       { name: 'Pending Pickup', value: pendingPickupCount, color: '#f59e0b' },
       { name: 'Processing', value: processingCount, color: '#3b82f6' },
+      { name: 'Created', value: createdCount, color: '#8b5cf6' },
       { name: 'Cancelled', value: cancelledCount, color: '#ef4444' }
     ];
 
@@ -217,6 +216,25 @@ const getRetailerStats = async (req, res, next) => {
       }))
       .slice(0, 8);
 
+    // Total Stock units across all inventory
+    const totalStock = allProducts.reduce((sum, p) => sum + parseInt(p.quantity || 0, 10), 0);
+
+    // Today's orders
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todaysOrdersCount = await Order.count({
+      where: {
+        createdAt: { [Op.gte]: todayStart },
+        orderStatus: { [Op.ne]: 'CANCELLED' }
+      }
+    });
+
+    const pendingOrdersCount = await Order.count({
+      where: {
+        orderStatus: { [Op.in]: ['CREATED', 'PROCESSING'] }
+      }
+    });
+
     return res.status(200).json({
       success: true,
       timeframe: {
@@ -225,7 +243,15 @@ const getRetailerStats = async (req, res, next) => {
         endDate: filterEnd.toISOString().split('T')[0]
       },
       stats: {
+        totalProducts: allProducts.length,
+        totalActiveProducts: allProducts.length,
+        totalStock,
+        todaysOrders: todaysOrdersCount,
+        pendingOrders: pendingOrdersCount,
+        totalSales: parseFloat(totalRevenue.toFixed(2)),
         totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+        lowStockAlerts: lowStockAlerts.length,
+        lowStockCount: lowStockAlerts.length,
         totalCostOfGoodsSold: parseFloat(totalCostOfGoodsSold.toFixed(2)),
         grossProfit: parseFloat(grossProfit.toFixed(2)),
         profitMargin: parseFloat(profitMargin.toFixed(1)),
@@ -234,14 +260,14 @@ const getRetailerStats = async (req, res, next) => {
         totalUnitsSold,
         totalWholesalePurchases: parseFloat(totalWholesalePurchases.toFixed(2)),
         totalPurchasedUnits,
-        totalActiveProducts: allProducts.length,
-        pendingDeliveries: pendingPickupCount,
-        lowStockCount: lowStockAlerts.length
+        pendingDeliveries: pendingPickupCount
       },
       charts: {
         salesTrend,
+        salesChart: salesTrend,
         categoryBreakdown,
-        fulfillmentChart
+        fulfillmentChart,
+        orderStatusChart: fulfillmentChart
       },
       topProducts,
       lowStockAlerts

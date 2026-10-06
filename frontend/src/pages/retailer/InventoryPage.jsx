@@ -194,7 +194,7 @@ const InventoryPage = () => {
   }, [filteredProducts]);
 
   const totalFilteredValuation = useMemo(() => {
-    return filteredProducts.reduce((sum, p) => sum + ((p.quantity || 0) * parseFloat(p.buyingPrice || 0)), 0);
+    return filteredProducts.reduce((sum, p) => sum + ((p.quantity || 0) * Math.ceil(parseFloat(p.buyingPrice || 0))), 0);
   }, [filteredProducts]);
 
   // Pagination calculations
@@ -346,9 +346,9 @@ const InventoryPage = () => {
         const isLow = p.quantity > 0 && p.quantity <= p.lowStockThreshold;
         const statusText = isOut ? 'OUT OF STOCK' : isLow ? 'LOW STOCK' : 'HEALTHY';
         const qty = p.quantity || 0;
-        const bPrice = parseFloat(p.buyingPrice || 0);
+        const bPrice = Math.ceil(parseFloat(p.buyingPrice || 0));
         const sPrice = parseFloat(p.sellingPrice || 0);
-        const val = qty * bPrice;
+        const val = Math.ceil(qty * bPrice);
 
         exportTotalUnits += qty;
         exportTotalValuation += val;
@@ -407,7 +407,7 @@ const InventoryPage = () => {
         buyingPrice: '-',
         sellingPrice: '-',
         status: '-',
-        valuation: '₹' + exportTotalValuation.toFixed(2)
+        valuation: '₹' + Math.ceil(exportTotalValuation).toFixed(2)
       });
 
       summaryRow.height = 28;
@@ -634,7 +634,7 @@ const InventoryPage = () => {
               <span>Total Catalog: <strong style={{ color: 'var(--text-main)' }}>{products.length}</strong></span>
               <span>Matched: <strong style={{ color: 'var(--primary-blue)', fontWeight: 700 }}>{filteredProducts.length}</strong></span>
               <span>Total Stock: <strong style={{ color: '#0d9488', fontWeight: 700 }}>{totalFilteredUnits} units</strong></span>
-              <span>Asset Valuation: <strong style={{ color: '#059669', fontWeight: 700 }}>₹{totalFilteredValuation.toFixed(2)}</strong></span>
+              <span>Asset Valuation: <strong style={{ color: '#059669', fontWeight: 700 }}>₹{Math.ceil(totalFilteredValuation).toFixed(2)}</strong></span>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -751,8 +751,8 @@ const InventoryPage = () => {
                         </span>
                       </td>
                       <td style={{ color: 'var(--text-muted)' }}>{p.lowStockThreshold} units</td>
-                      <td>₹{parseFloat(p.buyingPrice || 0).toFixed(2)}</td>
-                      <td style={{ fontWeight: 700, color: 'var(--primary-blue)' }}>₹{parseFloat(p.sellingPrice).toFixed(2)}</td>
+                      <td>₹{Math.ceil(parseFloat(p.buyingPrice || 0)).toFixed(2)}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--primary-blue)' }}>₹{parseFloat(p.sellingPrice || 0).toFixed(2)}</td>
                       <td>
                         <StatusBadge status={isOut ? 'OUT OF STOCK' : isLow ? 'LOW STOCK' : 'HEALTHY'} />
                       </td>

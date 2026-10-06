@@ -1,4 +1,5 @@
 const { sequelize, Product, StockHistory, User, Notification, Category } = require('../models');
+const { Op } = require('sequelize');
 
 // Add Stock with Weighted Average Buying Price Formula (Retailer)
 const addStock = async (req, res, next) => {
@@ -33,11 +34,14 @@ const addStock = async (req, res, next) => {
 
     // Weighted Average Cost formula:
     // (Old Qty * Old Price + New Qty * New Price) / Total Qty
-    const weightedAvgPrice = prevQty === 0
+    const rawWeightedAvgPrice = prevQty === 0
       ? unitBuyingPrice
       : ((prevQty * prevBuyingPrice) + (qtyToAdd * unitBuyingPrice)) / newQty;
 
-    // Update Product Stock and Buying Price (Weighted Average)
+    // Round up the weighted average cost
+    const weightedAvgPrice = Math.ceil(rawWeightedAvgPrice);
+
+    // Update Product Stock and Buying Price (Weighted Average rounded up)
     product.quantity = newQty;
     product.buyingPrice = parseFloat(weightedAvgPrice.toFixed(2));
 
@@ -67,19 +71,21 @@ const addStock = async (req, res, next) => {
     await Notification.create({
       userId: null,
       title: 'Stock Replenished',
-      message: `${qtyToAdd} units added for "${product.name}". New stock: ${newQty}, Weighted Avg Cost: ₹${weightedAvgPrice.toFixed(2)}.`,
+      message: `${qtyToAdd} units added for "${product.name}". New stock: ${newQty}, Weighted Avg Cost: ?${weightedAvgPrice.toFixed(2)}.`,
       type: 'STOCK_ADDED'
     });
 
     return res.status(200).json({
       success: true,
-      message: `Successfully added ${qtyToAdd} units to ${product.name}.`,
+      message: `Successfully restocked ${qtyToAdd} units of "${product.name}". Updated WAC: ?${weightedAvgPrice.toFixed(2)}`,
       data: {
-        productId: product.id,
-        productName: product.name,
-        newQuantity: product.quantity,
-        averageBuyingPrice: product.buyingPrice,
-        sellingPrice: product.sellingPrice,
+        product: {
+          id: product.id,
+          name: product.name,
+          quantity: product.quantity,
+          buyingPrice: product.buyingPrice,
+          sellingPrice: product.sellingPrice
+        },
         historyLog
       }
     });
@@ -89,80 +95,90 @@ const addStock = async (req, res, next) => {
   }
 };
 
-// Get Stock History
+// Fetch Complete Stock Audit History
 const getStockHistory = async (req, res, next) => {
   try {
-    const { productId } = req.query;
-    let whereClause = {};
-    if (productId) whereClause.productId = productId;
+    const { productId, limit = 50, page = 1 } = req.query;
+    const where = {};
+    if (productId) {
+      where.productId = productId;
+    }
 
-    const history = await StockHistory.findAll({
-      where: whereClause,
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { count, rows: history } = await StockHistory.findAndCountAll({
+      where,
       include: [
-        { model: Product, attributes: ['id', 'name', 'buyingPrice', 'sellingPrice'] },
-        { model: User, as: 'retailer', attributes: ['id', 'name', 'email'] }
+        {
+          model: Product,
+          attributes: ['id', 'name', 'buyingPrice', 'sellingPrice', 'quantity'],
+          include: [{ model: Category, attributes: ['id', 'name'] }]
+        },
+        {
+          model: User,
+          as: 'retailer',
+          attributes: ['id', 'name', 'email']
+        }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset
     });
 
     return res.status(200).json({
       success: true,
-      history
+      data: history,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / parseInt(limit))
+      }
     });
   } catch (error) {
     next(error);
   }
 };
 
-// Get all stock purchase transactions (grouped by batch — each restock = 1 purchase transaction)
+// Purchase / Inflow Transactions (Wholesale audit list)
 const getPurchaseTransactions = async (req, res, next) => {
   try {
-    const history = await require('../models').StockHistory.findAll({
+    const { supplier, search, limit = 100, page = 1 } = req.query;
+    const where = {};
+
+    if (supplier && supplier !== 'ALL') {
+      where.supplier = supplier;
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { count, rows: purchases } = await StockHistory.findAndCountAll({
+      where,
       include: [
         {
-          model: require('../models').Product,
-          attributes: ['id', 'name', 'image', 'sellingPrice', 'categoryId'],
-          include: [{ model: require('../models').Category, attributes: ['id', 'name'] }]
+          model: Product,
+          attributes: ['id', 'name', 'buyingPrice', 'sellingPrice', 'quantity', 'image'],
+          include: [{ model: Category, attributes: ['id', 'name'] }]
         },
-        { model: require('../models').User, as: 'retailer', attributes: ['id', 'name', 'email'] }
+        {
+          model: User,
+          as: 'retailer',
+          attributes: ['id', 'name', 'email']
+        }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset
     });
-
-    // Compute total purchase cost per transaction
-    const transactions = history.map(h => ({
-      id: h.id,
-      productId: h.productId,
-      productName: h.Product?.name || 'Product',
-      productImage: h.Product?.image || null,
-      categoryId: h.Product?.categoryId || null,
-      categoryName: h.Product?.Category?.name || 'General',
-      sellingPrice: parseFloat(h.Product?.sellingPrice || 0),
-      retailer: h.retailer,
-      purchasedFrom: h.supplier || 'Authorized Campus Wholesaler',
-      purchaserName: h.retailer?.name || 'Campus Retailer',
-      purchaserEmail: h.retailer?.email || '',
-      addedQuantity: h.addedQuantity,
-      previousQuantity: h.previousQuantity,
-      newQuantity: h.newQuantity,
-      purchaseRatePerUnit: parseFloat(h.newBuyingPrice),
-      averageCostPrice: parseFloat(h.averageBuyingPrice),
-      previousCostPrice: parseFloat(h.previousBuyingPrice),
-      totalPurchaseCost: parseFloat((h.addedQuantity * h.newBuyingPrice).toFixed(2)),
-      createdAt: h.createdAt
-    }));
-
-    // Summary stats
-    const totalSpent = transactions.reduce((s, t) => s + t.totalPurchaseCost, 0);
-    const totalUnits = transactions.reduce((s, t) => s + t.addedQuantity, 0);
 
     return res.status(200).json({
       success: true,
-      transactions,
-      summary: {
-        totalTransactions: transactions.length,
-        totalSpent: parseFloat(totalSpent.toFixed(2)),
-        totalUnits
+      data: purchases,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / parseInt(limit))
       }
     });
   } catch (error) {
