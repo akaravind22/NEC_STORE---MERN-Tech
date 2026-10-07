@@ -175,23 +175,36 @@ const getPurchaseTransactions = async (req, res, next) => {
     const formattedTransactions = purchases.map(p => {
       const addedQty = p.addedQuantity || 0;
       const batchRate = Math.ceil(parseFloat(p.newBuyingPrice || p.Product?.buyingPrice || 0));
+      const prevPrice = Math.ceil(parseFloat(p.previousBuyingPrice || 0));
+      const avgPrice = Math.ceil(parseFloat(p.averageBuyingPrice || batchRate || 0));
       const totalCost = Math.ceil(addedQty * batchRate);
       const supplierName = p.supplier || 'Authorized Wholesale Supplier';
+      const catName = p.Product?.Category?.name || 'General';
+      const imgUrl = p.Product?.image || '';
+      const purchaser = p.retailer?.name || 'Authorized Retailer';
+
       return {
         id: p.id,
         productId: p.productId,
         productName: p.Product?.name || 'Item #' + p.productId,
-        category: p.Product?.Category?.name || 'General',
+        category: catName,
+        categoryName: catName,
+        productImage: imgUrl,
+        image: imgUrl,
         purchasedFrom: supplierName,
         supplier: supplierName,
+        purchaserName: purchaser,
         addedQuantity: addedQty,
         unitsAdded: addedQty,
-        previousQuantity: p.previousQuantity,
-        newQuantity: p.newQuantity,
-        newBuyingPrice: batchRate,
+        previousQuantity: p.previousQuantity || 0,
+        newQuantity: p.newQuantity || addedQty,
+        previousCostPrice: prevPrice,
+        previousBuyingPrice: prevPrice,
         purchaseRatePerUnit: batchRate,
+        newBuyingPrice: batchRate,
         batchRate,
-        averageBuyingPrice: Math.ceil(parseFloat(p.averageBuyingPrice || 0)),
+        averageCostPrice: avgPrice,
+        averageBuyingPrice: avgPrice,
         totalCost,
         totalPurchaseCost: totalCost,
         createdAt: p.createdAt,

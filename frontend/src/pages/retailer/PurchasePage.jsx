@@ -715,25 +715,22 @@ const PurchasePage = () => {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--primary-blue)' }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--primary-blue)', fontSize: '0.95rem' }}>
                       +{t.addedQuantity} units
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {t.previousQuantity} → {t.newQuantity}
-                      </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: 700 }}>
-                      ₹{t.purchaseRatePerUnit.toFixed(2)}
+                      ₹{(Number(t.purchaseRatePerUnit || t.batchRate || 0)).toFixed(2)}
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        prev: ₹{t.previousCostPrice.toFixed(2)}
+                        prev: ₹{(Number(t.previousCostPrice ?? t.previousBuyingPrice ?? 0)).toFixed(2)}
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', color: '#f59e0b', fontWeight: 700 }}>
-                      ₹{t.averageCostPrice.toFixed(2)}
+                      ₹{(Number(t.averageCostPrice ?? t.averageBuyingPrice ?? 0)).toFixed(2)}
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: 900, fontSize: '1rem', color: '#ef4444' }}>
-                      ₹{t.totalPurchaseCost.toFixed(2)}
+                      ₹{(Number(t.totalPurchaseCost ?? t.totalCost ?? 0)).toFixed(2)}
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                        {t.addedQuantity} × ₹{t.purchaseRatePerUnit.toFixed(2)}
+                        {t.addedQuantity} × ₹{(Number(t.purchaseRatePerUnit || t.batchRate || 0)).toFixed(2)}
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>

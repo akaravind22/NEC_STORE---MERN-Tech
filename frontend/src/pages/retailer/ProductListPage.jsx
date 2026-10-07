@@ -897,28 +897,69 @@ const ProductListPage = () => {
             </div>
           </div>
 
-          {/* Download Template Action */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '12px 16px',
-            background: 'var(--neu-inset-bg, rgba(255, 255, 255, 0.03))',
-            borderRadius: '10px',
-            border: '1px dashed var(--neu-border-subtle)'
-          }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>Download Pre-formatted Template</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Includes Product Name, Category, <strong>Distributor / Supplier</strong>, Buying Price, Selling Price, and Stock.</div>
+          {/* Download Templates Action Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              background: 'var(--neu-inset-bg, rgba(255, 255, 255, 0.03))',
+              borderRadius: '10px',
+              border: '1px dashed var(--neu-border-subtle)',
+              gap: '10px'
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}>📦 Full Product Import Template</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Add new products with prices, stock, supplier, and category.</div>
+              </div>
+              <GlassButton
+                variant="secondary"
+                size="sm"
+                icon={Download}
+                onClick={handleDownloadTemplate}
+                style={{ width: '100%' }}
+              >
+                Download Full Template (.xlsx)
+              </GlassButton>
             </div>
-            <GlassButton
-              variant="secondary"
-              size="sm"
-              icon={Download}
-              onClick={handleDownloadTemplate}
-            >
-              Download Template (.xlsx)
-            </GlassButton>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              background: 'rgba(22, 163, 74, 0.05)',
+              borderRadius: '10px',
+              border: '1px dashed rgba(22, 163, 74, 0.4)',
+              gap: '10px'
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#16a34a' }}>🖼️ Photo URL Update Sheet (234 Products)</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pre-filled with all product names. Simply paste new photo URLs in Column E!</div>
+              </div>
+              <a
+                href="/NEC_Store_Product_Images_Update.xlsx"
+                download="NEC_Store_Product_Images_Update.xlsx"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: '#16a34a',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)'
+                }}
+              >
+                <Download size={14} />
+                <span>Download Photo Update Sheet (.xlsx)</span>
+              </a>
+            </div>
           </div>
 
           {/* Drag & Drop Upload Box */}

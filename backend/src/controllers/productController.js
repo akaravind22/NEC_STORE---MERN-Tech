@@ -454,10 +454,16 @@ const bulkImportProducts = async (req, res, next) => {
         continue;
       }
 
-      const numSellingPrice = parseFloat(item.sellingPrice);
+      // Process existing or new product
+
+      let numSellingPrice = parseFloat(item.sellingPrice);
       if (isNaN(numSellingPrice) || numSellingPrice < 0) {
-        errors.push({ row: rowNum, name: item.name, error: 'Invalid selling price: "' + item.sellingPrice + '". Must be a valid positive number.' });
-        continue;
+        if (existing) {
+          numSellingPrice = parseFloat(existing.sellingPrice);
+        } else {
+          errors.push({ row: rowNum, name: item.name, error: 'Invalid selling price: "' + item.sellingPrice + '". Must be a valid positive number for new products.' });
+          continue;
+        }
       }
 
       const numBuyingPrice = parseFloat(item.buyingPrice) || 0.00;
