@@ -357,60 +357,94 @@ const bulkImportProducts = async (req, res, next) => {
       const headerRow = worksheet.getRow(1);
       const colMap = {};
       headerRow.eachCell((cell, colNumber) => {
-        const headerText = String(cell.value || '').trim().toLowerCase();
-        if (headerText.includes('name') || headerText.includes('product')) colMap.name = colNumber;
-        else if (headerText.includes('cat')) colMap.category = colNumber;
-        else if (headerText.includes('distrib') || headerText.includes('suppl') || headerText.includes('vendor') || headerText.includes('from') || headerText.includes('dealer')) colMap.supplier = colNumber;
-        else if (headerText.includes('buy') || headerText.includes('cost') || headerText.includes('purchase rate')) colMap.buyingPrice = colNumber;
-        else if (headerText.includes('sell') || headerText.includes('price') || headerText.includes('mrp')) colMap.sellingPrice = colNumber;
-        else if (headerText.includes('quant') || headerText.includes('qty') || headerText.includes('stock')) colMap.quantity = colNumber;
-        else if (headerText.includes('thresh') || headerText.includes('low') || headerText.includes('alert')) colMap.lowStockThreshold = colNumber;
-        else if (headerText.includes('desc')) colMap.description = colNumber;
-        else if (headerText.includes('image') || headerText.includes('photo') || headerText.includes('img') || headerText.includes('url')) colMap.image = colNumber;
+        const cleanHeader = String(cell.value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, ' ');
+        if (!cleanHeader) return;
+
+        // 1. Photo / Image URL mapping
+        if (cleanHeader.includes('new photo') || cleanHeader.includes('new image') || cleanHeader.includes('new url') || cleanHeader.includes('photo') || cleanHeader.includes('image') || cleanHeader.includes('picture') || cleanHeader.includes('img') || cleanHeader.includes('url')) {
+          if (!colMap.image || cleanHeader.includes('new')) {
+            colMap.image = colNumber;
+          }
+        }
+        // 2. Low Stock Alert
+        else if (cleanHeader.includes('thresh') || cleanHeader.includes('low stock') || cleanHeader.includes('min stock') || cleanHeader.includes('alert')) {
+          colMap.lowStockThreshold = colNumber;
+        }
+        // 3. Quantity / Stock Units
+        else if (cleanHeader.includes('quant') || cleanHeader.includes('qty') || cleanHeader.includes('stock') || cleanHeader.includes('units') || cleanHeader.includes('count')) {
+          colMap.quantity = colNumber;
+        }
+        // 4. Buying Price / Cost Price
+        else if (cleanHeader.includes('buy') || cleanHeader.includes('cost') || cleanHeader.includes('purchase rate') || cleanHeader.includes('cp')) {
+          colMap.buyingPrice = colNumber;
+        }
+        // 5. Selling Price / Retail MRP
+        else if (cleanHeader.includes('sell') || cleanHeader.includes('mrp') || cleanHeader.includes('retail') || cleanHeader.includes('sp') || cleanHeader.includes('price') || cleanHeader.includes('rate')) {
+          colMap.sellingPrice = colNumber;
+        }
+        // 6. Supplier / Distributor
+        else if (cleanHeader.includes('suppl') || cleanHeader.includes('distrib') || cleanHeader.includes('vendor') || cleanHeader.includes('dealer') || cleanHeader.includes('from')) {
+          colMap.supplier = colNumber;
+        }
+        // 7. Category
+        else if (cleanHeader.includes('cat') || cleanHeader.includes('type') || cleanHeader.includes('department')) {
+          colMap.category = colNumber;
+        }
+        // 8. Description
+        else if (cleanHeader.includes('desc') || cleanHeader.includes('detail') || cleanHeader.includes('note')) {
+          colMap.description = colNumber;
+        }
+        // 9. Product ID
+        else if (cleanHeader === 'id' || cleanHeader.includes('product id') || cleanHeader.includes('item id') || cleanHeader.includes('code') || cleanHeader.includes('sku')) {
+          colMap.productId = colNumber;
+        }
+        // 10. Product Name
+        else if (cleanHeader.includes('name') || cleanHeader.includes('title') || cleanHeader.includes('product') || cleanHeader.includes('item')) {
+          if (!colMap.name) {
+            colMap.name = colNumber;
+          }
+        }
       });
 
-      // Default fallbacks if header keywords weren't exact
-      if (!colMap.name) colMap.name = 1;
-      if (!colMap.category) colMap.category = 2;
-      if (!colMap.supplier) colMap.supplier = 3;
-      if (!colMap.buyingPrice) colMap.buyingPrice = 4;
-      if (!colMap.sellingPrice) colMap.sellingPrice = 5;
-      if (!colMap.quantity) colMap.quantity = 6;
-      if (!colMap.lowStockThreshold) colMap.lowStockThreshold = 7;
-      if (!colMap.description) colMap.description = 8;
-      if (!colMap.image) colMap.image = 9;
+      // Positional fallbacks only if not mapped at all
+      if (!colMap.name && !colMap.productId) colMap.name = 1;
+      if (!colMap.category && headerRow.cellCount >= 2 && !colMap.image) colMap.category = 2;
 
       const getCellValue = (row, colIndex) => {
         if (!colIndex) return '';
         const cell = row.getCell(colIndex);
         if (!cell || cell.value === null || cell.value === undefined) return '';
         if (typeof cell.value === 'object') {
+          if (cell.value.hyperlink) return String(cell.value.hyperlink).trim();
           if (cell.value.text) return String(cell.value.text).trim();
-          if (cell.value.result !== undefined) return cell.value.result;
+          if (cell.value.result !== undefined) return String(cell.value.result).trim();
           if (cell.value.richText) return cell.value.richText.map(t => t.text).join('').trim();
         }
-        return cell.value;
+        return String(cell.value).trim();
       };
 
       for (let r = 2; r <= worksheet.rowCount; r++) {
         const row = worksheet.getRow(r);
         const nameVal = String(getCellValue(row, colMap.name) || '').trim();
+        const idVal = getCellValue(row, colMap.productId);
+        const imageVal = String(getCellValue(row, colMap.image) || '').trim();
         const sellingPriceVal = getCellValue(row, colMap.sellingPrice);
 
-        // If entire row is blank, skip
-        if (!nameVal && !sellingPriceVal) continue;
+        // If entire row has neither id, name, price nor image, skip
+        if (!nameVal && !idVal && !sellingPriceVal && !imageVal) continue;
 
         rowsToProcess.push({
           rowNumber: r,
+          productId: idVal,
           name: nameVal,
-          category: String(getCellValue(row, colMap.category) || 'Stationery').trim(),
-          supplier: String(getCellValue(row, colMap.supplier) || '').trim() || 'Authorized Campus Wholesaler',
+          category: String(getCellValue(row, colMap.category) || '').trim(),
+          supplier: String(getCellValue(row, colMap.supplier) || '').trim(),
           buyingPrice: getCellValue(row, colMap.buyingPrice),
           sellingPrice: sellingPriceVal,
           quantity: getCellValue(row, colMap.quantity),
           lowStockThreshold: getCellValue(row, colMap.lowStockThreshold),
           description: String(getCellValue(row, colMap.description) || '').trim(),
-          image: String(getCellValue(row, colMap.image) || '').trim()
+          image: imageVal
         });
       }
     } else {
@@ -433,7 +467,9 @@ const bulkImportProducts = async (req, res, next) => {
       'Electronics': 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=500',
       'Books': 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500',
       'Accessories': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500',
-      'College Essentials': 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500'
+      'College Essentials': 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500',
+      'Uniform': 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=500',
+      'Snacks & Beverages': 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=500'
     };
 
     const categoriesCache = {};
@@ -449,90 +485,155 @@ const bulkImportProducts = async (req, res, next) => {
 
     for (const item of rowsToProcess) {
       const rowNum = item.rowNumber || 'N/A';
-      if (!item.name) {
-        errors.push({ row: rowNum, error: 'Product name is required.' });
+      const trimmedName = String(item.name || '').trim();
+      const numId = parseInt(item.productId);
+
+      if (!trimmedName && isNaN(numId)) {
+        errors.push({ row: rowNum, error: 'Product name or ID is required.' });
         continue;
       }
 
-      // Process existing or new product
-
-      let numSellingPrice = parseFloat(item.sellingPrice);
-      if (isNaN(numSellingPrice) || numSellingPrice < 0) {
-        if (existing) {
-          numSellingPrice = parseFloat(existing.sellingPrice);
-        } else {
-          errors.push({ row: rowNum, name: item.name, error: 'Invalid selling price: "' + item.sellingPrice + '". Must be a valid positive number for new products.' });
-          continue;
+      // Find existing product by ID or Name (case-insensitive & trimmed)
+      let existing = null;
+      if (!isNaN(numId) && numId > 0) {
+        existing = await Product.findByPk(numId);
+      }
+      if (!existing && trimmedName) {
+        existing = await Product.findOne({
+          where: { name: trimmedName }
+        });
+        if (!existing) {
+          existing = await Product.findOne({
+            where: sequelize.where(
+              sequelize.fn('LOWER', sequelize.fn('TRIM', sequelize.col('Product.name'))),
+              trimmedName.toLowerCase()
+            )
+          });
         }
       }
 
-      const numBuyingPrice = parseFloat(item.buyingPrice) || 0.00;
-      const numQuantity = parseInt(item.quantity) >= 0 ? parseInt(item.quantity) : 0;
-      const numThreshold = parseInt(item.lowStockThreshold) >= 0 ? parseInt(item.lowStockThreshold) : 5;
+      // Parse numerical fields
+      const rawSelling = parseFloat(item.sellingPrice);
+      const hasValidSelling = !isNaN(rawSelling) && rawSelling >= 0;
 
-      // Find or create category
-      const catName = item.category || 'Stationery';
-      let category = categoriesCache[catName.toLowerCase()];
-      if (!category) {
-        const [newCat] = await Category.findOrCreate({
-          where: { name: catName },
-          defaults: { name: catName, description: catName + ' items category' }
-        });
-        category = newCat;
-        categoriesCache[catName.toLowerCase()] = category;
+      const rawBuying = parseFloat(item.buyingPrice);
+      const hasValidBuying = !isNaN(rawBuying) && rawBuying >= 0;
+
+      const rawQty = parseInt(item.quantity);
+      const hasValidQty = !isNaN(rawQty) && rawQty > 0;
+
+      const rawThreshold = parseInt(item.lowStockThreshold);
+      const hasValidThreshold = !isNaN(rawThreshold) && rawThreshold >= 0;
+
+      // Resolve Category if provided
+      let category = null;
+      const catName = (item.category || '').trim();
+      if (catName) {
+        category = categoriesCache[catName.toLowerCase()];
+        if (!category) {
+          const [newCat] = await Category.findOrCreate({
+            where: { name: catName },
+            defaults: { name: catName, description: catName + ' items category' }
+          });
+          category = newCat;
+          categoriesCache[catName.toLowerCase()] = category;
+        }
       }
 
-      const finalImage = item.image || categoryDefaultImages[category.name] || categoryDefaultImages['Stationery'];
-
-      // Check if product with this exact name already exists
-      let existing = await Product.findOne({ where: { name: item.name } });
       if (existing) {
-        const prevQty = existing.quantity;
-        const prevBuyingPrice = parseFloat(existing.buyingPrice);
-        const newQty = prevQty + numQuantity;
-        const finalBuyingPrice = numBuyingPrice > 0 ? numBuyingPrice : prevBuyingPrice;
+        // --- UPDATE EXISTING PRODUCT ---
+        const updateFields = {};
 
-        const weightedAvgPrice = prevQty === 0
-          ? finalBuyingPrice
-          : ((prevQty * prevBuyingPrice) + (numQuantity * finalBuyingPrice)) / (newQty || 1);
+        // 1. Update Image if provided (clean URL)
+        if (item.image && typeof item.image === 'string' && item.image.trim().length > 5) {
+          updateFields.image = item.image.trim();
+        }
 
-        // Update product
-        await existing.update({
-          categoryId: category.id,
-          buyingPrice: parseFloat(weightedAvgPrice.toFixed(2)),
-          sellingPrice: numSellingPrice,
-          quantity: newQty,
-          lowStockThreshold: numThreshold,
-          description: item.description || existing.description,
-          image: item.image || existing.image
-        });
+        // 2. Update Selling Price if provided
+        if (hasValidSelling) {
+          updateFields.sellingPrice = rawSelling;
+        }
 
-        if (numQuantity > 0) {
+        // 3. Update Category if provided
+        if (category) {
+          updateFields.categoryId = category.id;
+        }
+
+        // 4. Update Description if provided
+        if (item.description && item.description.trim().length > 0) {
+          updateFields.description = item.description.trim();
+        }
+
+        // 5. Update Low Stock Threshold if provided
+        if (hasValidThreshold) {
+          updateFields.lowStockThreshold = rawThreshold;
+        }
+
+        // 6. Update Quantity & Buying Price if incoming quantity > 0
+        if (hasValidQty) {
+          const prevQty = existing.quantity || 0;
+          const prevBuyingPrice = parseFloat(existing.buyingPrice) || 0;
+          const newQty = prevQty + rawQty;
+          const finalBuyingPrice = hasValidBuying ? rawBuying : prevBuyingPrice;
+
+          const weightedAvgPrice = prevQty === 0
+            ? finalBuyingPrice
+            : ((prevQty * prevBuyingPrice) + (rawQty * finalBuyingPrice)) / (newQty || 1);
+
+          updateFields.quantity = newQty;
+          updateFields.buyingPrice = parseFloat(weightedAvgPrice.toFixed(2));
+
           await StockHistory.create({
             productId: existing.id,
             retailerId: req.user ? req.user.id : 2,
             previousQuantity: prevQty,
-            addedQuantity: numQuantity,
+            addedQuantity: rawQty,
             newQuantity: newQty,
             previousBuyingPrice: prevBuyingPrice,
             newBuyingPrice: finalBuyingPrice,
             averageBuyingPrice: parseFloat(weightedAvgPrice.toFixed(2)),
-            supplier: item.supplier || item.purchasedFrom || 'Bulk Import Distributor'
+            supplier: item.supplier || 'Bulk Import Distributor'
           });
+        } else if (hasValidBuying) {
+          updateFields.buyingPrice = rawBuying;
         }
 
+        // Execute update on existing product
+        await existing.update(updateFields);
         updatedCount++;
         importedProducts.push(existing);
+
       } else {
-        // Create new product
+        // --- CREATE NEW PRODUCT ---
+        if (!hasValidSelling) {
+          errors.push({
+            row: rowNum,
+            name: trimmedName,
+            error: 'Selling price is required for new product "' + trimmedName + '".'
+          });
+          continue;
+        }
+
+        const defaultCat = category || categoriesCache['stationery'] || allCategories[0];
+        const catId = defaultCat ? defaultCat.id : 1;
+        const catNameStr = defaultCat ? defaultCat.name : 'Stationery';
+
+        const finalImage = (item.image && item.image.trim().length > 5)
+          ? item.image.trim()
+          : (categoryDefaultImages[catNameStr] || categoryDefaultImages['Stationery']);
+
+        const numBuyingPrice = hasValidBuying ? rawBuying : 0.00;
+        const numQuantity = hasValidQty ? rawQty : 0;
+        const numThreshold = hasValidThreshold ? rawThreshold : 5;
+
         const newProd = await Product.create({
-          name: item.name,
-          categoryId: category.id,
+          name: trimmedName,
+          categoryId: catId,
           buyingPrice: numBuyingPrice,
-          sellingPrice: numSellingPrice,
+          sellingPrice: rawSelling,
           quantity: numQuantity,
           lowStockThreshold: numThreshold,
-          description: item.description || item.name + ' for NEC campus store',
+          description: item.description || (trimmedName + ' for NEC campus store'),
           image: finalImage
         });
 
@@ -546,7 +647,7 @@ const bulkImportProducts = async (req, res, next) => {
             previousBuyingPrice: 0.00,
             newBuyingPrice: numBuyingPrice,
             averageBuyingPrice: numBuyingPrice,
-            supplier: item.supplier || item.purchasedFrom || 'Bulk Import Distributor'
+            supplier: item.supplier || 'Bulk Import Distributor'
           });
         }
 

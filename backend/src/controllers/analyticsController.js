@@ -201,6 +201,61 @@ const getRetailerStats = async (req, res, next) => {
       { name: 'Cancelled', value: cancelledCount, color: '#ef4444' }
     ];
 
+    // Aggregate Top Purchasing Students / Customers Leaderboard
+    const studentMap = {};
+    orders.forEach(order => {
+      const u = order.User;
+      const uId = u ? u.id : (order.userId || 'guest');
+      const uName = u ? u.name : 'Campus Student';
+      const uEmail = u ? u.email : 'student@nec.edu.in';
+      const orderTotal = parseFloat(order.totalAmount || 0);
+
+      if (!studentMap[uId]) {
+        studentMap[uId] = {
+          id: uId,
+          name: uName,
+          email: uEmail,
+          totalSpent: 0,
+          ordersCount: 0,
+          totalUnits: 0,
+          lastOrderDate: order.createdAt,
+          categoriesBought: {}
+        };
+      }
+
+      studentMap[uId].totalSpent += orderTotal;
+      studentMap[uId].ordersCount += 1;
+      if (new Date(order.createdAt) > new Date(studentMap[uId].lastOrderDate)) {
+        studentMap[uId].lastOrderDate = order.createdAt;
+      }
+
+      const items = order.items || order.OrderItems || [];
+      items.forEach(item => {
+        const qty = item.quantity || 1;
+        studentMap[uId].totalUnits += qty;
+        const cat = item.Product?.Category?.name || 'General';
+        studentMap[uId].categoriesBought[cat] = (studentMap[uId].categoriesBought[cat] || 0) + qty;
+      });
+    });
+
+    const topStudents = Object.values(studentMap)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10)
+      .map((s, idx) => {
+        const topCat = Object.entries(s.categoriesBought).sort((a, b) => b[1] - a[1])[0];
+        return {
+          rank: idx + 1,
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          ordersCount: s.ordersCount,
+          totalSpent: parseFloat(s.totalSpent.toFixed(2)),
+          totalUnits: s.totalUnits,
+          favoriteCategory: topCat ? topCat[0] : 'General',
+          lastPurchase: s.lastOrderDate
+        };
+      });
+
     // Fast-Depleting & Low Stock Items
     const lowStockAlerts = allProducts
       .filter(p => p.quantity <= p.lowStockThreshold)
@@ -270,6 +325,8 @@ const getRetailerStats = async (req, res, next) => {
         orderStatusChart: fulfillmentChart
       },
       topProducts,
+      topStudents,
+      topCustomers: topStudents,
       lowStockAlerts
     });
   } catch (error) {

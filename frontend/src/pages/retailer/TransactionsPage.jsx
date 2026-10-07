@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   CreditCard, 
+  Eye,
   Search, 
   X, 
   ArrowUpDown, 
@@ -12,11 +13,18 @@ import {
   Download, 
   RefreshCw, 
   FileSpreadsheet, 
-  Store 
+  Store,
+  Receipt,
+  User,
+  Package,
+  Clock,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import GlassCard from '../../components/common/GlassCard';
 import StatusBadge from '../../components/common/StatusBadge';
+import GlassModal from '../../components/common/GlassModal';
 import GlassButton from '../../components/common/GlassButton';
 import CenteredPagination from '../../components/common/CenteredPagination';
 import Sidebar from '../../components/layout/Sidebar';
@@ -31,6 +39,10 @@ const TransactionsPage = () => {
   const [purchaseSummary, setPurchaseSummary] = useState({ totalTransactions: 0, totalSpent: 0, totalUnits: 0 });
   const [purchaseLoading, setPurchaseLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+
+  // Modal View States
+  const [selectedStudentTxn, setSelectedStudentTxn] = useState(null);
+  const [selectedPurchaseTxn, setSelectedPurchaseTxn] = useState(null);
 
   // Search & Filter & Sort States
   const [search, setSearch] = useState('');
@@ -99,293 +111,217 @@ const TransactionsPage = () => {
       return <ArrowUpDown size={13} style={{ opacity: 0.35, marginLeft: '6px' }} />;
     }
     return sortDirection === 'asc' ? (
-      <ChevronUp size={14} style={{ color: 'var(--primary-blue)', marginLeft: '6px', fontWeight: 700 }} />
+      <ChevronUp size={14} style={{ color: 'var(--primary-blue)', marginLeft: '6px' }} />
     ) : (
-      <ChevronDown size={14} style={{ color: 'var(--primary-blue)', marginLeft: '6px', fontWeight: 700 }} />
+      <ChevronDown size={14} style={{ color: 'var(--primary-blue)', marginLeft: '6px' }} />
     );
   };
 
-  const isFiltered = Boolean(search.trim() || paymentStatusFilter !== 'ALL' || fromDate || toDate);
-
-  // Filtered Student Orders
-  const filteredStudentOrders = useMemo(() => {
-    return orders
-      .filter((o) => {
-        if (search.trim()) {
-          const q = search.toLowerCase();
-          const matchTxn = ('#TXN-' + o.id).toLowerCase().includes(q) || String(o.id).includes(q);
-          const matchCust = o.User && o.User.name.toLowerCase().includes(q);
-          const matchEmail = o.User && o.User.email.toLowerCase().includes(q);
-          if (!matchTxn && !matchCust && !matchEmail) return false;
-        }
-
-        if (paymentStatusFilter !== 'ALL' && o.paymentStatus !== paymentStatusFilter) return false;
-
-        if (fromDate) {
-          const start = new Date(fromDate + 'T00:00:00');
-          if (new Date(o.createdAt) < start) return false;
-        }
-        if (toDate) {
-          const end = new Date(toDate + 'T23:59:59');
-          if (new Date(o.createdAt) > end) return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        let valA = a[sortKey];
-        let valB = b[sortKey];
-
-        if (sortKey === 'createdAt') {
-          valA = new Date(valA).getTime();
-          valB = new Date(valB).getTime();
-        } else if (sortKey === 'totalAmount') {
-          valA = parseFloat(valA) || 0;
-          valB = parseFloat(valB) || 0;
-        }
-
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-  }, [orders, search, paymentStatusFilter, fromDate, toDate, sortKey, sortDirection]);
-
-  // Filtered Purchase Transactions
-  const filteredPurchases = useMemo(() => {
-    return purchases
-      .filter((p) => {
-        if (search.trim()) {
-          const q = search.toLowerCase();
-          const matchBatch = ('#PURCH-' + p.id).toLowerCase().includes(q) || String(p.id).includes(q);
-          const matchProd = p.productName && p.productName.toLowerCase().includes(q);
-          const matchSupp = p.purchasedFrom && p.purchasedFrom.toLowerCase().includes(q);
-          if (!matchBatch && !matchProd && !matchSupp) return false;
-        }
-
-        if (fromDate) {
-          const start = new Date(fromDate + 'T00:00:00');
-          if (new Date(p.createdAt) < start) return false;
-        }
-        if (toDate) {
-          const end = new Date(toDate + 'T23:59:59');
-          if (new Date(p.createdAt) > end) return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        let valA = a[sortKey];
-        let valB = b[sortKey];
-
-        if (sortKey === 'createdAt') {
-          valA = new Date(valA).getTime();
-          valB = new Date(valB).getTime();
-        } else if (sortKey === 'totalPurchaseCost') {
-          valA = parseFloat(valA) || 0;
-          valB = parseFloat(valB) || 0;
-        }
-
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-  }, [purchases, search, fromDate, toDate, sortKey, sortDirection]);
-
-  const activeDataSet = activeTab === 'student' ? filteredStudentOrders : filteredPurchases;
-  const totalPages = Math.ceil(activeDataSet.length / pageSize) || 1;
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return activeDataSet.slice(start, start + pageSize);
-  }, [activeDataSet, currentPage]);
-
   const clearFilters = () => {
     setSearch('');
-    setPaymentStatusFilter('ALL');
     setFromDate('');
     setToDate('');
+    setPaymentStatusFilter('ALL');
     setCurrentPage(1);
-    addToast('Filters reset to overall dataset.', 'info');
   };
 
-  // ═════════════════════════════════════════════════════════════════
-  // EXCEL REPORT DOWNLOAD (Tab Aware: Student vs Purchase)
-  // ═════════════════════════════════════════════════════════════════
-  const handleDownloadExcel = async () => {
-    if (activeDataSet.length === 0) {
-      addToast('No records to export for current criteria.', 'error');
-      return;
-    }
+  const isFiltered = search !== '' || fromDate !== '' || toDate !== '' || paymentStatusFilter !== 'ALL';
 
-    setDownloading(true);
-    try {
-      const workbook = new ExcelJS.Workbook();
-
-      let filterDetails = [];
-      if (fromDate) filterDetails.push('From: ' + fromDate);
-      if (toDate) filterDetails.push('To: ' + toDate);
-      if (search.trim()) filterDetails.push('Search: "' + search.trim() + '"');
-
-      const filterSummaryText = filterDetails.length > 0
-        ? 'Scope: Filtered (' + filterDetails.join(' | ') + ')'
-        : 'Scope: Overall (All Records)';
-
-      if (activeTab === 'student') {
-        // STUDENT ORDERS TRANSACTIONS EXCEL
-        const worksheet = workbook.addWorksheet('Student Transactions');
-        worksheet.columns = [
-          { key: 'id', width: 14 },
-          { key: 'orderId', width: 14 },
-          { key: 'customerName', width: 26 },
-          { key: 'amount', width: 18 },
-          { key: 'paymentMethod', width: 18 },
-          { key: 'status', width: 16 },
-          { key: 'date', width: 24 }
-        ];
-
-        worksheet.mergeCells('A1:G1');
-        const titleCell = worksheet.getCell('A1');
-        titleCell.value = 'NEC CAMPUS STORE — STUDENT PAYMENT TRANSACTIONS';
-        titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
-        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '065F46' } };
-        worksheet.getRow(1).height = 32;
-
-        worksheet.mergeCells('A2:G2');
-        const metaCell = worksheet.getCell('A2');
-        metaCell.value = filterSummaryText + '  •  Exported on: ' + new Date().toLocaleString('en-IN') + '  •  Total Txns: ' + activeDataSet.length;
-        metaCell.font = { italic: true, size: 10, color: { argb: '374151' } };
-        metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F3F4F6' } };
-        worksheet.getRow(2).height = 22;
-
-        worksheet.getRow(3).values = [];
-
-        const headers = ['Txn ID', 'Order ID', 'Customer Name', 'Amount (₹)', 'Payment Method', 'Status', 'Date & Time'];
-        const headerRow = worksheet.getRow(4);
-        headerRow.values = headers;
-        headerRow.height = 26;
-        headerRow.font = { bold: true, color: { argb: 'FFFFFF' }, size: 10.5 };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '059669' } };
-        headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-
-        let totalAmt = 0;
-        activeDataSet.forEach((o, idx) => {
-          const amt = parseFloat(o.totalAmount || 0);
-          totalAmt += amt;
-          const row = worksheet.addRow({
-            id: '#TXN-' + String(o.id).padStart(4, '0'),
-            orderId: '#ORD-' + String(o.id).padStart(4, '0'),
-            customerName: o.User ? o.User.name : 'Student Customer',
-            amount: '₹' + amt.toFixed(2),
-            paymentMethod: 'RAZORPAY (Online)',
-            status: o.paymentStatus || 'PAID',
-            date: new Date(o.createdAt).toLocaleString('en-IN')
-          });
-          row.height = 22;
-          if (idx % 2 === 1) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9FAFB' } };
-        });
-
-        const summaryRow = worksheet.addRow({
-          id: 'TOTAL / SUMMARY',
-          orderId: activeDataSet.length + ' Orders',
-          customerName: '-',
-          amount: '₹' + totalAmt.toFixed(2),
-          paymentMethod: '-',
-          status: '-',
-          date: '-'
-        });
-        summaryRow.height = 28;
-        summaryRow.font = { bold: true, size: 11, color: { argb: '065F46' } };
-        summaryRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D1FAE5' } };
-      } else {
-        // PURCHASE TRANSACTIONS EXCEL
-        const worksheet = workbook.addWorksheet('Purchase Transactions');
-        worksheet.columns = [
-          { key: 'batchId', width: 16 },
-          { key: 'productName', width: 34 },
-          { key: 'purchasedFrom', width: 30 },
-          { key: 'unitsAdded', width: 14 },
-          { key: 'purchaseRate', width: 20 },
-          { key: 'totalCost', width: 22 },
-          { key: 'date', width: 24 }
-        ];
-
-        worksheet.mergeCells('A1:G1');
-        const titleCell = worksheet.getCell('A1');
-        titleCell.value = 'NEC CAMPUS STORE — STORE PRODUCT PURCHASE TRANSACTIONS';
-        titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
-        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4C1D95' } };
-        worksheet.getRow(1).height = 32;
-
-        worksheet.mergeCells('A2:G2');
-        const metaCell = worksheet.getCell('A2');
-        metaCell.value = filterSummaryText + '  •  Exported on: ' + new Date().toLocaleString('en-IN') + '  •  Total Batches: ' + activeDataSet.length;
-        metaCell.font = { italic: true, size: 10, color: { argb: '374151' } };
-        metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F3F4F6' } };
-        worksheet.getRow(2).height = 22;
-
-        worksheet.getRow(3).values = [];
-
-        const headers = ['Batch ID', 'Product Name', 'Purchased From', 'Units Added', 'Purchase Rate (₹)', 'Total Cost (₹)', 'Date & Time'];
-        const headerRow = worksheet.getRow(4);
-        headerRow.values = headers;
-        headerRow.height = 26;
-        headerRow.font = { bold: true, color: { argb: 'FFFFFF' }, size: 10.5 };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '7C3AED' } };
-        headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-
-        let totalCost = 0;
-        let totalUnits = 0;
-        activeDataSet.forEach((p, idx) => {
-          const cost = parseFloat(p.totalPurchaseCost || 0);
-          const units = p.addedQuantity || 0;
-          totalCost += cost;
-          totalUnits += units;
-
-          const row = worksheet.addRow({
-            batchId: '#PURCH-' + String(p.id).padStart(4, '0'),
-            productName: p.productName || 'Product',
-            purchasedFrom: p.purchasedFrom || 'Authorized Wholesaler',
-            unitsAdded: '+' + units + ' units',
-            purchaseRate: '₹' + parseFloat(p.purchaseRatePerUnit || 0).toFixed(2),
-            totalCost: '₹' + cost.toFixed(2),
-            date: new Date(p.createdAt).toLocaleString('en-IN')
-          });
-          row.height = 22;
-          if (idx % 2 === 1) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9FAFB' } };
-        });
-
-        const summaryRow = worksheet.addRow({
-          batchId: 'TOTAL / SUMMARY',
-          productName: activeDataSet.length + ' Batches',
-          purchasedFrom: '-',
-          unitsAdded: totalUnits + ' total units',
-          purchaseRate: '-',
-          totalCost: '₹' + totalCost.toFixed(2),
-          date: '-'
-        });
-        summaryRow.height = 28;
-        summaryRow.font = { bold: true, size: 11, color: { argb: '4C1D95' } };
-        summaryRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'EDE9FE' } };
+  // Filtered and Sorted Student Transactions (Orders)
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      // 1. Search (ID, Student Name, Email, Amount)
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const idMatch = String(order.id).toLowerCase().includes(q) || ('#txn-' + String(order.id).padStart(4, '0')).toLowerCase().includes(q);
+        const nameMatch = (order.User?.name || '').toLowerCase().includes(q);
+        const emailMatch = (order.User?.email || '').toLowerCase().includes(q);
+        const amountMatch = String(order.totalAmount || '').includes(q);
+        if (!idMatch && !nameMatch && !emailMatch && !amountMatch) return false;
       }
 
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const scopeName = isFiltered ? '_Filtered' : '_Overall';
-      link.setAttribute('download', 'NEC_Store_' + (activeTab === 'student' ? 'Student_Txns' : 'Purchases') + scopeName + '_' + Date.now() + '.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      // 2. Date Range Filter
+      if (fromDate) {
+        const orderDate = new Date(order.createdAt).setHours(0, 0, 0, 0);
+        const from = new Date(fromDate).setHours(0, 0, 0, 0);
+        if (orderDate < from) return false;
+      }
+      if (toDate) {
+        const orderDate = new Date(order.createdAt).setHours(23, 59, 59, 999);
+        const to = new Date(toDate).setHours(23, 59, 59, 999);
+        if (orderDate > to) return false;
+      }
 
-      addToast('Downloaded ' + (activeTab === 'student' ? 'Student Transactions' : 'Purchase Transactions') + ' Excel successfully!', 'success');
+      // 3. Payment Status Filter
+      if (paymentStatusFilter !== 'ALL') {
+        if ((order.paymentStatus || 'PAID') !== paymentStatusFilter) return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      let valA = a[sortKey];
+      let valB = b[sortKey];
+
+      if (sortKey === 'createdAt') {
+        valA = new Date(a.createdAt).getTime();
+        valB = new Date(b.createdAt).getTime();
+      } else if (sortKey === 'totalAmount') {
+        valA = parseFloat(a.totalAmount || 0);
+        valB = parseFloat(b.totalAmount || 0);
+      } else if (sortKey === 'id') {
+        valA = parseInt(a.id);
+        valB = parseInt(b.id);
+      }
+
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [orders, search, fromDate, toDate, paymentStatusFilter, sortKey, sortDirection]);
+
+  // Filtered and Sorted Purchase Transactions (Stock history)
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter((item) => {
+      // 1. Search (Batch ID, Product Name, Supplier, Cost)
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const idMatch = String(item.id).toLowerCase().includes(q) || ('#purch-' + String(item.id).padStart(4, '0')).toLowerCase().includes(q);
+        const nameMatch = (item.productName || '').toLowerCase().includes(q);
+        const supplierMatch = (item.purchasedFrom || '').toLowerCase().includes(q);
+        const costMatch = String(item.totalPurchaseCost || '').includes(q);
+        if (!idMatch && !nameMatch && !supplierMatch && !costMatch) return false;
+      }
+
+      // 2. Date Range Filter
+      if (fromDate) {
+        const itemDate = new Date(item.createdAt).setHours(0, 0, 0, 0);
+        const from = new Date(fromDate).setHours(0, 0, 0, 0);
+        if (itemDate < from) return false;
+      }
+      if (toDate) {
+        const itemDate = new Date(item.createdAt).setHours(23, 59, 59, 999);
+        const to = new Date(toDate).setHours(23, 59, 59, 999);
+        if (itemDate > to) return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      let valA = a[sortKey];
+      let valB = b[sortKey];
+
+      if (sortKey === 'createdAt') {
+        valA = new Date(a.createdAt).getTime();
+        valB = new Date(b.createdAt).getTime();
+      } else if (sortKey === 'totalPurchaseCost') {
+        valA = parseFloat(item.totalPurchaseCost || 0);
+        valB = parseFloat(item.totalPurchaseCost || 0);
+      } else if (sortKey === 'id') {
+        valA = parseInt(a.id);
+        valB = parseInt(b.id);
+      }
+
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [purchases, search, fromDate, toDate, sortKey, sortDirection]);
+
+  // Current active data set & pagination
+  const activeDataSet = activeTab === 'student' ? filteredOrders : filteredPurchases;
+  const totalPages = Math.ceil(activeDataSet.length / pageSize) || 1;
+  const paginatedData = activeDataSet.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Export to Excel handler
+  const handleDownloadExcel = async () => {
+    try {
+      setDownloading(true);
+      const workbook = new ExcelJS.Workbook();
+      
+      if (activeTab === 'student') {
+        const worksheet = workbook.addWorksheet('Student Transactions');
+        worksheet.columns = [
+          { header: 'Transaction ID', key: 'id', width: 18 },
+          { header: 'Student Name', key: 'name', width: 25 },
+          { header: 'Student Email', key: 'email', width: 30 },
+          { header: 'Payment Gateway', key: 'gateway', width: 20 },
+          { header: 'Amount (₹)', key: 'amount', width: 15 },
+          { header: 'Payment Status', key: 'status', width: 16 },
+          { header: 'Date & Time', key: 'date', width: 22 }
+        ];
+
+        // Header Styling
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E40AF' }
+        };
+
+        filteredOrders.forEach((order) => {
+          worksheet.addRow({
+            id: '#TXN-' + String(order.id).padStart(4, '0'),
+            name: order.User ? order.User.name : 'Walk-in Customer',
+            email: order.User ? order.User.email : 'N/A',
+            gateway: 'RAZORPAY (Online)',
+            amount: parseFloat(order.totalAmount || 0).toFixed(2),
+            status: order.paymentStatus || 'PAID',
+            date: new Date(order.createdAt).toLocaleString('en-IN')
+          });
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'NEC_Store_Student_Transactions_' + new Date().toISOString().split('T')[0] + '.xlsx';
+        anchor.click();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const worksheet = workbook.addWorksheet('Purchase Transactions');
+        worksheet.columns = [
+          { header: 'Batch ID', key: 'id', width: 18 },
+          { header: 'Product Name', key: 'product', width: 35 },
+          { header: 'Supplier / Distributor', key: 'supplier', width: 30 },
+          { header: 'Units Added', key: 'qty', width: 15 },
+          { header: 'Purchase Rate (₹)', key: 'rate', width: 18 },
+          { header: 'Total Batch Cost (₹)', key: 'cost', width: 20 },
+          { header: 'Date & Time', key: 'date', width: 22 }
+        ];
+
+        // Header Styling
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF6D28D9' }
+        };
+
+        filteredPurchases.forEach((item) => {
+          worksheet.addRow({
+            id: '#PURCH-' + String(item.id).padStart(4, '0'),
+            product: item.productName || 'Store Item',
+            supplier: item.purchasedFrom || 'Wholesale Supplier',
+            qty: item.addedQuantity || 0,
+            rate: Math.ceil(parseFloat(item.purchaseRatePerUnit || item.batchRate || item.newBuyingPrice || 0)).toFixed(2),
+            cost: parseFloat(item.totalPurchaseCost || 0).toFixed(2),
+            date: new Date(item.createdAt).toLocaleString('en-IN')
+          });
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'NEC_Store_Stock_Purchases_' + new Date().toISOString().split('T')[0] + '.xlsx';
+        anchor.click();
+        window.URL.revokeObjectURL(url);
+      }
+
+      addToast('Excel export downloaded successfully!', 'success');
     } catch (err) {
       console.error(err);
       addToast('Failed to export Excel file.', 'error');
@@ -576,27 +512,47 @@ const TransactionsPage = () => {
               </div>
             </div>
 
-            {/* Reset Filters Button */}
+            {/* Payment Filter for Student tab */}
+            {activeTab === 'student' && (
+              <div style={{ flex: '1 1 130px', minWidth: '120px' }}>
+                <select
+                  value={paymentStatusFilter}
+                  onChange={(e) => { setPaymentStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="glass-input"
+                  style={{ width: '100%', cursor: 'pointer', fontSize: '0.85rem', padding: '7px 10px' }}
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="PAID">PAID</option>
+                  <option value="UNPAID">UNPAID</option>
+                  <option value="FAILED">FAILED</option>
+                </select>
+              </div>
+            )}
+
+            {/* Reset Button */}
             {isFiltered && (
               <button
                 onClick={clearFilters}
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: 'rgba(239, 68, 68, 0.12)',
+                  gap: '5px',
+                  padding: '7px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
                   border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: 'var(--status-danger)',
-                  padding: '7px 12px',
-                  borderRadius: 'var(--radius-sm, 8px)',
-                  fontSize: '0.8rem',
+                  cursor: 'pointer',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  fontSize: '0.82rem',
+                  transition: 'all 150ms ease'
                 }}
               >
-                <X size={13} /> Reset
+                <X size={13} />
+                <span>Reset Filters</span>
               </button>
             )}
+
           </div>
         </GlassCard>
 
@@ -621,19 +577,20 @@ const TransactionsPage = () => {
                     <th onClick={() => handleSort('createdAt')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
                       Date {renderSortIndicator('createdAt')}
                     </th>
+                    <th style={{ padding: '14px 18px', textAlign: 'center', width: '110px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
                         Loading student transaction records...
                       </td>
                     </tr>
                   ) : paginatedData.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <CreditCard size={32} style={{ opacity: 0.3, margin: '0 auto 8px', display: 'block' }} />
                         No student payment transactions found matching your criteria.
                       </td>
@@ -659,6 +616,30 @@ const TransactionsPage = () => {
                         </td>
                         <td style={{ padding: '14px 18px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                           {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => setSelectedStudentTxn(order)}
+                            title="View Transaction Receipt"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: '1px solid rgba(37, 99, 235, 0.3)',
+                              background: 'rgba(37, 99, 235, 0.1)',
+                              color: 'var(--primary-blue)',
+                              transition: 'all 180ms ease'
+                            }}
+                          >
+                            <Eye size={15} />
+                            <span>View</span>
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -692,19 +673,20 @@ const TransactionsPage = () => {
                     <th onClick={() => handleSort('createdAt')} style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}>
                       Date {renderSortIndicator('createdAt')}
                     </th>
+                    <th style={{ padding: '14px 18px', textAlign: 'center', width: '110px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {purchaseLoading ? (
                     <tr>
-                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
                         Loading wholesale purchase records...
                       </td>
                     </tr>
                   ) : paginatedData.length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <Store size={32} style={{ opacity: 0.3, margin: '0 auto 8px', display: 'block' }} />
                         No purchase transactions found matching your criteria.
                       </td>
@@ -725,13 +707,37 @@ const TransactionsPage = () => {
                           +{item.addedQuantity} units
                         </td>
                         <td style={{ padding: '14px 18px', color: 'var(--text-muted)' }}>
-                          ₹₹{Math.ceil(parseFloat(item.purchaseRatePerUnit || item.batchRate || item.newBuyingPrice || 0)).toFixed(2)}
+                          ₹{Math.ceil(parseFloat(item.purchaseRatePerUnit || item.batchRate || item.newBuyingPrice || 0)).toFixed(2)}
                         </td>
                         <td style={{ padding: '14px 18px', fontWeight: 700, color: 'var(--status-danger)', fontSize: '0.95rem' }}>
                           -₹{parseFloat(item.totalPurchaseCost || 0).toFixed(2)}
                         </td>
                         <td style={{ padding: '14px 18px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                           {new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => setSelectedPurchaseTxn(item)}
+                            title="View Purchase Details"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: '1px solid rgba(124, 58, 237, 0.3)',
+                              background: 'rgba(124, 58, 237, 0.1)',
+                              color: 'var(--primary-purple)',
+                              transition: 'all 180ms ease'
+                            }}
+                          >
+                            <Eye size={15} />
+                            <span>View</span>
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -742,6 +748,225 @@ const TransactionsPage = () => {
             <CenteredPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </GlassCard>
         )}
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* STUDENT TRANSACTION RECEIPT MODAL                                */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <GlassModal
+          isOpen={!!selectedStudentTxn}
+          onClose={() => setSelectedStudentTxn(null)}
+          title={selectedStudentTxn ? 'Transaction Receipt #TXN-' + String(selectedStudentTxn.id).padStart(4, '0') : 'Transaction Receipt'}
+          maxWidth="620px"
+        >
+          {selectedStudentTxn && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Header Summary Card */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '14px',
+                padding: '16px',
+                background: 'var(--neu-inset-bg)',
+                borderRadius: '12px',
+                border: '1px solid var(--neu-border-subtle)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Student / Customer
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    {selectedStudentTxn.User ? selectedStudentTxn.User.name : 'Walk-in Customer'}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {selectedStudentTxn.User ? selectedStudentTxn.User.email : 'N/A'}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Payment & Status
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <StatusBadge status={selectedStudentTxn.paymentStatus || 'PAID'} />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      RAZORPAY (Online)
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {new Date(selectedStudentTxn.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Items Breakdown */}
+              <div>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  Purchased Items Breakdown
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
+                  {(selectedStudentTxn.items && selectedStudentTxn.items.length > 0) ? (
+                    selectedStudentTxn.items.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          background: 'var(--card-bg)',
+                          border: '1px solid var(--neu-border-subtle)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: 'rgba(37, 99, 235, 0.1)',
+                            color: 'var(--primary-blue)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.85rem',
+                            fontWeight: 700
+                          }}>
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                              {item.Product ? item.Product.name : 'Store Item'}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Qty: <strong>{item.quantity}</strong> × ₹{parseFloat(item.unitPrice || 0).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.92rem' }}>
+                          ₹{parseFloat(item.subtotal || (item.quantity * item.unitPrice) || 0).toFixed(2)}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--neu-inset-bg)', borderRadius: '10px', fontSize: '0.85rem' }}>
+                      Online purchase transaction for Order #ORD-{String(selectedStudentTxn.id).padStart(4, '0')}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Total Paid Row */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: '14px',
+                borderTop: '2px dashed var(--neu-border-subtle)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Amount Received</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--status-success)', fontWeight: 600 }}>Verified & Credited to Store</div>
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--status-success)' }}>
+                  +₹{parseFloat(selectedStudentTxn.totalAmount || 0).toFixed(2)}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px' }}>
+                <GlassButton variant="primary" onClick={() => setSelectedStudentTxn(null)}>
+                  Close Receipt
+                </GlassButton>
+              </div>
+
+            </div>
+          )}
+        </GlassModal>
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* WHOLESALE STOCK PURCHASE MODAL                                   */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <GlassModal
+          isOpen={!!selectedPurchaseTxn}
+          onClose={() => setSelectedPurchaseTxn(null)}
+          title={selectedPurchaseTxn ? 'Restock Purchase #PURCH-' + String(selectedPurchaseTxn.id).padStart(4, '0') : 'Purchase Batch Details'}
+          maxWidth="560px"
+        >
+          {selectedPurchaseTxn && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Product Info Card */}
+              <div style={{
+                padding: '16px',
+                background: 'var(--neu-inset-bg)',
+                borderRadius: '12px',
+                border: '1px solid var(--neu-border-subtle)'
+              }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Restocked Item
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '4px' }}>
+                  {selectedPurchaseTxn.productName}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  Supplier: <strong style={{ color: 'var(--text-main)' }}>{selectedPurchaseTxn.purchasedFrom || 'Authorized Wholesale Supplier'}</strong>
+                </div>
+              </div>
+
+              {/* Cost & Units Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(37, 99, 235, 0.06)', border: '1px solid rgba(37, 99, 235, 0.18)' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Units Restocked</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-blue)', marginTop: '4px' }}>
+                    +{selectedPurchaseTxn.addedQuantity} units
+                  </div>
+                </div>
+
+                <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(124, 58, 237, 0.06)', border: '1px solid rgba(124, 58, 237, 0.18)' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Purchase Rate (Per Unit)</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-purple)', marginTop: '4px' }}>
+                    ₹{Math.ceil(parseFloat(selectedPurchaseTxn.purchaseRatePerUnit || selectedPurchaseTxn.batchRate || selectedPurchaseTxn.newBuyingPrice || 0)).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Outflow */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: '14px',
+                borderTop: '2px dashed var(--neu-border-subtle)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Expense (Inventory Outflow)</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--status-danger)', fontWeight: 600 }}>Paid to Wholesaler</div>
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--status-danger)' }}>
+                  -₹{parseFloat(selectedPurchaseTxn.totalPurchaseCost || 0).toFixed(2)}
+                </div>
+              </div>
+
+              {/* Date & Close */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Recorded on: {new Date(selectedPurchaseTxn.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </div>
+                <GlassButton variant="primary" onClick={() => setSelectedPurchaseTxn(null)}>
+                  Close
+                </GlassButton>
+              </div>
+
+            </div>
+          )}
+        </GlassModal>
 
       </main>
     </div>
