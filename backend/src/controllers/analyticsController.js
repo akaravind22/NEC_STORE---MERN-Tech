@@ -340,6 +340,7 @@ const getAdminStats = async (req, res, next) => {
     const totalUsers = await User.count();
     const totalCustomers = await User.count({ where: { role: 'CUSTOMER' } });
     const totalRetailers = await User.count({ where: { role: 'RETAILER' } });
+    const totalAdmins = await User.count({ where: { role: 'ADMIN' } });
     const totalProducts = await Product.count();
     const totalOrders = await Order.count();
 
@@ -348,11 +349,68 @@ const getAdminStats = async (req, res, next) => {
     });
     const totalSales = totalSalesResult || 0;
 
-    const products = await Product.findAll();
-    const lowStockCount = products.filter(p => p.quantity <= p.lowStockThreshold).length;
+    const allProducts = await Product.findAll({
+      include: [{ model: Category, attributes: ['id', 'name'] }]
+    });
+
+    const lowStockAlerts = allProducts
+      .filter(p => p.quantity <= p.lowStockThreshold)
+      .slice(0, 6)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        quantity: p.quantity,
+        threshold: p.lowStockThreshold,
+        sellingPrice: parseFloat(p.sellingPrice || 0),
+        category: p.Category?.name || 'General'
+      }));
+
+    const lowStockCount = allProducts.filter(p => p.quantity <= p.lowStockThreshold).length;
 
     const pendingOrdersCount = await Order.count({
       where: { orderStatus: { [Op.in]: ['CREATED', 'PROCESSING'] } }
+    });
+
+    const completedOrdersCount = await Order.count({
+      where: { orderStatus: 'COMPLETED' }
+    });
+
+    // 7-day Sales & Order Volume Trend
+    const today = new Date();
+    const salesTrend = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const startOfDay = new Date(d.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(d.setHours(23, 59, 59, 999));
+
+      const dayOrders = await Order.findAll({
+        where: {
+          createdAt: { [Op.between]: [startOfDay, endOfDay] },
+          orderStatus: { [Op.ne]: 'CANCELLED' }
+        }
+      });
+      const daySales = dayOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount || 0), 0);
+      salesTrend.push({
+        day: startOfDay.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: startOfDay.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        sales: parseFloat(daySales.toFixed(2)),
+        orders: dayOrders.length
+      });
+    }
+
+    // Recent 6 Orders
+    const recentOrders = await Order.findAll({
+      limit: 6,
+      order: [['createdAt', 'DESC']],
+      include: [{ model: User, attributes: ['id', 'name', 'email', 'rollNumber'] }]
+    });
+
+    // Recent 5 Users
+    const recentUsers = await User.findAll({
+      limit: 5,
+      order: [['createdAt', 'DESC']],
+      attributes: ['id', 'name', 'email', 'role', 'rollNumber', 'department', 'status', 'createdAt']
     });
 
     return res.status(200).json({
@@ -361,12 +419,18 @@ const getAdminStats = async (req, res, next) => {
         totalUsers,
         totalCustomers,
         totalRetailers,
+        totalAdmins,
         totalProducts,
         totalOrders,
-        totalSales,
+        totalSales: parseFloat(totalSales.toFixed(2)),
         lowStockProducts: lowStockCount,
-        pendingOrders: pendingOrdersCount
-      }
+        pendingOrders: pendingOrdersCount,
+        completedOrders: completedOrdersCount
+      },
+      salesTrend,
+      recentOrders,
+      recentUsers,
+      lowStockAlerts
     });
   } catch (error) {
     next(error);
