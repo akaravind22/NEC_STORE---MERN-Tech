@@ -11,5 +11,6 @@ router.post('/create-staff', roleMiddleware('ADMIN'), userController.createStaff
 router.get('/:id', roleMiddleware('ADMIN'), userController.getUserById);
 router.put('/:id/role', roleMiddleware('ADMIN'), userController.updateUserRole);
 router.put('/:id/status', roleMiddleware('ADMIN'), userController.updateUserStatus);
+router.delete('/:id', roleMiddleware('ADMIN'), userController.deleteUser);
 
 module.exports = router;

@@ -5,15 +5,24 @@ import { useAuthStore } from './useAuthStore';
 
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return null;
-  const str = String(timeStr).trim().toUpperCase();
+  let str = String(timeStr).trim().toUpperCase();
   const isPM = str.includes('PM');
   const isAM = str.includes('AM');
+  
+  // Replace dot with colon (e.g., '10.00' -> '10:00')
+  str = str.replace('.', ':');
+  
   const digits = str.replace(/[^0-9:]/g, '');
   const parts = digits.split(':').map(Number);
   let h = parts[0] || 0;
-  const m = parts[1] || 0;
+  let m = parts[1] || 0;
+  
   if (isPM && h < 12) h += 12;
   if (isAM && h === 12) h = 0;
+  
+  h = Math.max(0, Math.min(23, h));
+  m = Math.max(0, Math.min(59, m));
+  
   return h * 60 + m;
 };
 

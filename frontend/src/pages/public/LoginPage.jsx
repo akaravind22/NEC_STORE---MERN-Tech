@@ -8,12 +8,15 @@ import GlassCard from '../../components/common/GlassCard';
 import GlassInput from '../../components/common/GlassInput';
 import GlassButton from '../../components/common/GlassButton';
 import GoogleOAuthButton from '../../components/common/GoogleOAuthButton';
-import { KeyRound, ArrowRight, Eye, EyeOff, Sparkles, User, ShoppingBag, Shield } from 'lucide-react';
+import ForgotPasswordModal from '../../components/auth/ForgotPasswordModal';
+import { KeyRound, ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
 
 const LoginPage = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  
   const { login, loading } = useAuthStore();
   const { addToast } = useToastStore();
   const navigate = useNavigate();
@@ -32,13 +35,11 @@ const LoginPage = () => {
     }
   };
 
-  const handleQuickDemo = async (demoEmail) => {
-    setIdentifier(demoEmail);
-    setPassword('Password123');
-    const res = await login(demoEmail, 'Password123');
-    if (res?.success) {
-      handleRedirect(res.user?.role);
+  const handlePasswordResetSuccess = (resetEmail) => {
+    if (resetEmail) {
+      setIdentifier(resetEmail);
     }
+    setPassword('');
   };
 
   return (
@@ -50,52 +51,49 @@ const LoginPage = () => {
           <GlassCard hover={false} style={{ padding: '0', overflow: 'hidden' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
               
-              {/* Left Side � Login Form */}
-              <div style={{ flex: '1 1 380px', padding: '36px 32px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <div
-                    style={{
-                      width: '46px',
-                      height: '46px',
-                      borderRadius: '14px',
-                      background: 'var(--gradient-primary)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      marginBottom: '12px',
-                      boxShadow: '0 6px 16px rgba(37, 99, 235, 0.25)'
-                    }}
-                  >
-                    <KeyRound size={24} />
-                  </div>
-
-                  <h2 style={{ fontSize: '1.55rem', marginBottom: '4px', fontWeight: 800 }}>Account Login</h2>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', lineHeight: 1.4 }}>
-                    Sign in with your email/username and password.
-                  </p>
+              {/* Left Side — Form */}
+              <div style={{ flex: '1 1 360px', padding: '40px 32px', minWidth: '300px' }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, var(--primary-blue), var(--primary-purple))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  marginBottom: '16px',
+                  boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)'
+                }}>
+                  <KeyRound size={22} />
                 </div>
+
+                <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Sign In
+                </h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 24px 0' }}>
+                  Enter your email or username and password to continue.
+                </p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <GlassInput
-                    label="Username or Email"
-                    name="identifier"
-                    type="text"
-                    placeholder="e.g. admin@necstore.com or Roll No"
+                    label="Email or Username"
+                    required
+                    placeholder="Enter your email or username"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    required
+                    autoComplete="username"
                   />
 
                   <div style={{ position: 'relative' }}>
                     <GlassInput
                       label="Password"
-                      name="password"
+                      required
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="Enter your password"
+                      placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
@@ -103,15 +101,43 @@ const LoginPage = () => {
                       style={{
                         position: 'absolute',
                         right: '12px',
-                        bottom: '12px',
-                        background: 'transparent',
+                        top: '36px',
+                        background: 'none',
                         border: 'none',
-                        color: 'var(--text-muted)',
                         cursor: 'pointer',
+                        color: 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         padding: '4px'
                       }}
+                      tabIndex={-1}
+                      title={showPassword ? 'Hide password' : 'Show password'}
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+
+                  {/* Forgot Password Link with OTP indication */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotModalOpen(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary-blue)',
+                        fontSize: '0.84rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: 0
+                      }}
+                    >
+                      <Lock size={13} />
+                      Forgot password?
                     </button>
                   </div>
 
@@ -119,11 +145,11 @@ const LoginPage = () => {
                     type="submit"
                     variant="primary"
                     size="lg"
-                    disabled={loading}
+                    loading={loading}
                     icon={ArrowRight}
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '6px' }}
                   >
-                    {loading ? 'Authenticating...' : 'Sign In'}
+                    Sign In
                   </GlassButton>
                 </form>
 
@@ -141,79 +167,8 @@ const LoginPage = () => {
                   <GoogleOAuthButton label="Continue with Google" />
                 </div>
 
-                {/* Quick 1-Click Demo Login */}
-                <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--glass-border-subtle)' }}>
-                  <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                    <Sparkles size={13} color="var(--primary-blue)" /> 1-Click Instant Demo Login
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo('student1@necstore.com')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        padding: '8px 10px',
-                        borderRadius: '10px',
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.25)',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        color: 'var(--primary-blue)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <User size={13} /> Customer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo('retailer@necstore.com')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        padding: '8px 10px',
-                        borderRadius: '10px',
-                        background: 'rgba(124, 58, 237, 0.1)',
-                        border: '1px solid rgba(124, 58, 237, 0.25)',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        color: 'var(--primary-purple)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <ShoppingBag size={13} /> Retailer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo('admin@necstore.com')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        padding: '8px 10px',
-                        borderRadius: '10px',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        color: 'var(--status-danger)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <Shield size={13} /> Admin
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                {/* Register Link */}
+                <div style={{ marginTop: '18px', textAlign: 'center', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
                   Don't have an account?{' '}
                   <Link to="/register" style={{ color: 'var(--primary-blue)', fontWeight: 700, textDecoration: 'none' }}>
                     Register here
@@ -221,7 +176,7 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              {/* Right Side � Illustration */}
+              {/* Right Side — Illustration */}
               <div style={{
                 flex: '1 1 280px',
                 background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #c7d2fe 100%)',
@@ -247,6 +202,13 @@ const LoginPage = () => {
           </GlassCard>
         </div>
       </main>
+
+      {/* Forgot Password OTP Verification Modal */}
+      <ForgotPasswordModal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+        onPasswordResetSuccess={handlePasswordResetSuccess}
+      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Search, Ban, CheckCircle, Eye, UserPlus, UserCog, Shield, Store, GraduationCap, ArrowUpDown, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Users, Search, Ban, CheckCircle, Eye, UserPlus, UserCog, Shield, Store, GraduationCap, ArrowUpDown, ChevronUp, ChevronDown, X, Trash2 } from 'lucide-react';
 import GlassCard from '../../components/common/GlassCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import GlassButton from '../../components/common/GlassButton';
@@ -41,6 +41,8 @@ const UserManagementPage = () => {
   const [roleModalUser, setRoleModalUser] = useState(null);
   const [selectedRole, setSelectedRole] = useState('RETAILER');
   const [changingRole, setChangingRole] = useState(false);
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { getAxios, user: currentUser } = useAuthStore();
   const { addToast } = useToastStore();
@@ -115,6 +117,24 @@ const UserManagementPage = () => {
   const openRoleModal = (u) => {
     setRoleModalUser(u);
     setSelectedRole(u.role);
+  };
+
+  
+  const handleDeleteUser = async () => {
+    if (!deleteConfirmUser) return;
+    setDeleting(true);
+    try {
+      const res = await getAxios().delete(`/users/${deleteConfirmUser.id}`);
+      if (res.data.success) {
+        addToast(res.data.message, 'success');
+        setDeleteConfirmUser(null);
+        fetchUsers();
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to remove user account.', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleRoleChange = async () => {
@@ -342,9 +362,9 @@ const UserManagementPage = () => {
                         {u.role}
                       </span>
                     </td>
-                    <td>{u.rollNumber || '�'}</td>
-                    <td>{u.department || '�'}</td>
-                    <td>{u.phone || '�'}</td>
+                    <td>{u.rollNumber || '-'}</td>
+                    <td>{u.department || '-'}</td>
+                    <td>{u.phone || '-'}</td>
                     <td><StatusBadge status={u.status} /></td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td>
@@ -366,21 +386,43 @@ const UserManagementPage = () => {
                         </button>
 
                         {!(u.role === 'ADMIN' && currentUser?.id === u.id) && (
-                          <button
-                            onClick={() => toggleUserStatus(u.id, u.status)}
-                            disabled={updating}
-                            style={{
-                              background: u.status === 'ACTIVE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                              border: 'none',
-                              borderRadius: '8px',
-                              padding: '6px 9px',
-                              color: u.status === 'ACTIVE' ? '#ef4444' : '#10b981',
-                              cursor: 'pointer'
-                            }}
-                            title={u.status === 'ACTIVE' ? 'Suspend user account' : 'Activate user account'}
-                          >
-                            {u.status === 'ACTIVE' ? <Ban size={15} /> : <CheckCircle size={15} />}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => toggleUserStatus(u.id, u.status)}
+                              disabled={updating}
+                              style={{
+                                background: u.status === 'ACTIVE' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '6px 9px',
+                                color: u.status === 'ACTIVE' ? '#ef4444' : '#10b981',
+                                cursor: 'pointer'
+                              }}
+                              title={u.status === 'ACTIVE' ? 'Suspend user account' : 'Activate user account'}
+                            >
+                              {u.status === 'ACTIVE' ? <Ban size={15} /> : <CheckCircle size={15} />}
+                            </button>
+
+                            <button
+                              onClick={() => setDeleteConfirmUser(u)}
+                              disabled={deleting}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.18)',
+                                border: '1px solid rgba(239, 68, 68, 0.35)',
+                                borderRadius: '8px',
+                                padding: '6px 9px',
+                                color: '#dc2626',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease'
+                              }}
+                              title="Remove user permanently (Admin Only)"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -400,6 +442,82 @@ const UserManagementPage = () => {
           onPageChange={setCurrentPage}
           itemLabel="users"
         />
+      
+      {/* Modal: Confirm Delete User (Admin Only) */}
+      <GlassModal
+        isOpen={!!deleteConfirmUser}
+        onClose={() => setDeleteConfirmUser(null)}
+        title="Remove User Account"
+        maxWidth="460px"
+      >
+        {deleteConfirmUser && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '6px 2px' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ef4444',
+              margin: '0 auto'
+            }}>
+              <Trash2 size={28} />
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text-main)' }}>
+                Permanently Remove User?
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0 }}>
+                Are you sure you want to remove <strong style={{ color: 'var(--text-main)' }}>{deleteConfirmUser.name}</strong> ({deleteConfirmUser.email}) from the store?
+              </p>
+            </div>
+
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: '12px',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.22)',
+              fontSize: '0.82rem',
+              color: '#ef4444',
+              lineHeight: 1.5
+            }}>
+              ⚠️ <strong>Admin Action:</strong> This user will be permanently deleted from the database and will no longer be able to log in. This action cannot be undone.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+              <GlassButton
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => setDeleteConfirmUser(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </GlassButton>
+              <GlassButton
+                type="button"
+                variant="danger"
+                size="md"
+                loading={deleting}
+                onClick={handleDeleteUser}
+                style={{
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700
+                }}
+              >
+                {deleting ? 'Removing...' : 'Confirm Remove'}
+              </GlassButton>
+            </div>
+          </div>
+        )}
+      </GlassModal>
+
       </main>
 
       {/* Modal: Create Staff / Retailer */}
@@ -423,8 +541,8 @@ const UserManagementPage = () => {
               style={{ cursor: 'pointer', fontWeight: 600 }}
               required
             >
-              <option value="RETAILER">??? RETAILER (Store Staff - Stock & Orders)</option>
-              <option value="ADMIN">?? ADMIN (Full Platform Administrator)</option>
+              <option value="RETAILER">RETAILER (Store Staff - Stock & Orders)</option>
+              <option value="ADMIN">ADMIN (Full Platform Administrator)</option>
             </select>
           </div>
 
@@ -511,9 +629,9 @@ const UserManagementPage = () => {
                 className="glass-input"
                 style={{ cursor: 'pointer', fontWeight: 600 }}
               >
-                <option value="CUSTOMER">?? CUSTOMER (Student / Customer)</option>
-                <option value="RETAILER">??? RETAILER (Campus Store Staff)</option>
-                <option value="ADMIN">?? ADMIN (Store System Administrator)</option>
+                <option value="CUSTOMER">CUSTOMER (Student / Customer)</option>
+                <option value="RETAILER">RETAILER (Campus Store Staff)</option>
+                <option value="ADMIN">ADMIN (Store System Administrator)</option>
               </select>
             </div>
 
@@ -566,11 +684,11 @@ const UserManagementPage = () => {
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Roll Number / Staff ID:</span>
-                <div style={{ fontWeight: 700, marginTop: '2px' }}>{selectedUser.rollNumber || 'N/A'}</div>
+                <div style={{ fontWeight: 700, marginTop: '2px' }}>{selectedUser.rollNumber || '-'}</div>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Department / Division:</span>
-                <div style={{ fontWeight: 700, marginTop: '2px' }}>{selectedUser.department || 'N/A'}</div>
+                <div style={{ fontWeight: 700, marginTop: '2px' }}>{selectedUser.department || '-'}</div>
               </div>
             </div>
             <div>
@@ -579,7 +697,7 @@ const UserManagementPage = () => {
             </div>
             <div>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Phone Contact:</span>
-              <div style={{ fontWeight: 700, marginTop: '2px' }}>{selectedUser.phone || 'N/A'}</div>
+              <div style={{ fontWeight: 700, marginTop: '2px' }}>{selectedUser.phone || '-'}</div>
             </div>
           </div>
         )}

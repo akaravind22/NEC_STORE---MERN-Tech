@@ -123,42 +123,7 @@ const OTPVerifyPage = () => {
               </p>
             </div>
 
-            {/* Demo Mode Notice Box */}
-            {demoOtp && (
-              <div
-                style={{
-                  margin: '0 0 24px 0',
-                  padding: '14px 18px',
-                  borderRadius: '16px',
-                  background: 'rgba(56, 189, 248, 0.15)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  textAlign: 'center'
-                }}
-              >
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  ⚡ DEMO MODE ACTIVE - GENERATED OTP:
-                </div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '6px', color: 'var(--primary-blue)', marginTop: '4px' }}>
-                  {demoOtp}
-                </div>
-                <button
-                  onClick={() => setOtpDigits(demoOtp.split(''))}
-                  style={{
-                    marginTop: '8px',
-                    background: 'var(--primary-blue)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '9999px',
-                    padding: '4px 12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Click to Auto-Fill OTP
-                </button>
-              </div>
-            )}
+            {/* Live email mode active */}
 
             <form onSubmit={handleVerify}>
               {/* 6 OTP Input Boxes */}

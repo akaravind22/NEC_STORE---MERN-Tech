@@ -1,4 +1,5 @@
 const { sequelize, Order, OrderItem, Product, Transaction, Notification, User, Category } = require('../models');
+const { sendPaymentSuccessEmail, sendOrderCancellationEmail, sendOrderDeliveredEmail } = require('../utils/mailer');
 
 // Create Order (Customer)
 const createOrder = async (req, res, next) => {
@@ -120,6 +121,30 @@ const createOrder = async (req, res, next) => {
       });
     }
 
+    // Send Payment & Order Confirmation Email
+    try {
+      if (req.user && req.user.email) {
+        sendPaymentSuccessEmail(req.user.email, {
+          order,
+          user: req.user,
+          paymentMethod,
+          razorpayPaymentId,
+          calculatedTotal,
+          items: orderItemsToCreate.map(oi => {
+            const matched = stockUpdates.find(su => su.product.id === oi.productId);
+            return {
+              name: matched ? matched.product.name : 'Store Item',
+              quantity: oi.quantity,
+              unitPrice: oi.unitPrice,
+              subtotal: oi.subtotal
+            };
+          })
+        });
+      }
+    } catch (emailErr) {
+      console.error('[Order Error] Non-blocking email error:', emailErr.message);
+    }
+
     const createdOrder = await Order.findByPk(order.id, {
       include: [
         { model: OrderItem, as: 'items', include: [{ model: Product, include: [{ model: Category, attributes: ['id', 'name'] }] }] },
@@ -223,6 +248,21 @@ const updateOrderStatus = async (req, res, next) => {
       type: 'ORDER_UPDATED'
     });
 
+    // Send Automated Delivery & Collection Receipt Email when marked DELIVERED or COMPLETED
+    if (order.deliveryStatus === 'DELIVERED' || order.orderStatus === 'COMPLETED') {
+      try {
+        const recipientUser = await User.findByPk(order.userId);
+        if (recipientUser && recipientUser.email) {
+          sendOrderDeliveredEmail(recipientUser.email, {
+            order,
+            user: recipientUser
+          });
+        }
+      } catch (deliveryMailErr) {
+        console.error('[Order Error] Non-blocking delivery email error:', deliveryMailErr.message);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Order status updated successfully.',
@@ -283,6 +323,19 @@ const cancelOrder = async (req, res, next) => {
       message: `Order #${order.id} has been cancelled and product stock has been restored.`,
       type: 'ORDER_CANCELLED'
     });
+
+    // Send Automated Cancellation Email to Student
+    try {
+      const orderUser = await User.findByPk(order.userId);
+      if (orderUser && orderUser.email) {
+        sendOrderCancellationEmail(orderUser.email, {
+          order,
+          user: orderUser
+        });
+      }
+    } catch (cancelMailErr) {
+      console.error('[Order Error] Non-blocking cancellation email error:', cancelMailErr.message);
+    }
 
     return res.status(200).json({
       success: true,

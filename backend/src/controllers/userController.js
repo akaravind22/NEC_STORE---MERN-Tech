@@ -164,7 +164,64 @@ const updateUserStatus = async (req, res, next) => {
   }
 };
 
+
+// Delete / Remove user permanently from store (Admin only)
+const deleteUser = async (req, res, next) => {
+  const { sequelize, Notification, OTPVerification, Order, OrderItem, Transaction, StockHistory } = require('../models');
+  const t = await sequelize.transaction();
+  try {
+    const userIdToDelete = req.params.id;
+
+    const user = await User.findByPk(userIdToDelete, { transaction: t });
+    if (!user) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Safety: Admin cannot delete their own account
+    if (user.role === 'ADMIN' && req.user.id === user.id) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'You cannot remove your own administrator account.' });
+    }
+
+    // Clean up notifications for this user
+    await Notification.destroy({ where: { userId: user.id }, transaction: t });
+
+    // Clean up OTP verifications for this email
+    await OTPVerification.destroy({ where: { email: user.email }, transaction: t });
+
+    // Clean up user transactions and orders safely
+    const userOrders = await Order.findAll({ where: { userId: user.id }, transaction: t });
+    for (const ord of userOrders) {
+      await OrderItem.destroy({ where: { orderId: ord.id }, transaction: t });
+      await Transaction.destroy({ where: { orderId: ord.id }, transaction: t });
+      await ord.destroy({ transaction: t });
+    }
+    await Transaction.destroy({ where: { userId: user.id }, transaction: t });
+
+    // Clean up StockHistory where user was retailer
+    await StockHistory.destroy({ where: { retailerId: user.id }, transaction: t });
+
+    const deletedUserName = user.name;
+    const deletedUserRole = user.role;
+
+    // Permanently destroy user
+    await user.destroy({ transaction: t });
+
+    await t.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: `Account for "${deletedUserName}" (${deletedUserRole}) has been permanently removed from the store.`
+    });
+  } catch (error) {
+    await t.rollback();
+    next(error);
+  }
+};
+
 module.exports = {
+  deleteUser,
   getAllUsers,
   getUserById,
   createStaffUser,

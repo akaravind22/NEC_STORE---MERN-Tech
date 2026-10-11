@@ -45,7 +45,6 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-    
   // Google OAuth 2.0 Login / Signup Action
   loginWithGoogle: async (googlePayload) => {
     set({ loading: true });
@@ -94,7 +93,8 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-sendOtp: async (email) => {
+  // Send OTP for Login
+  sendOtp: async (email) => {
     set({ loading: true });
     try {
       const res = await axios.post(`${API_URL}/auth/send-otp`, { email });
@@ -109,6 +109,7 @@ sendOtp: async (email) => {
     }
   },
 
+  // Verify OTP for Login
   verifyOtp: async (email, otp) => {
     set({ loading: true });
     try {
@@ -123,6 +124,38 @@ sendOtp: async (email) => {
     } catch (err) {
       set({ loading: false });
       const msg = err.response?.data?.message || 'Invalid or expired OTP.';
+      useToastStore.getState().addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  },
+
+  // Send OTP for Forgot Password
+  sendForgotPasswordOtp: async (email) => {
+    set({ loading: true });
+    try {
+      const res = await axios.post(`${API_URL}/auth/forgot-password-otp`, { email });
+      set({ loading: false });
+      useToastStore.getState().addToast(res.data.message || 'OTP sent successfully!', 'success');
+      return { success: true, demoOtp: res.data.demoOtp };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Failed to send password reset OTP.';
+      useToastStore.getState().addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  },
+
+  // Reset Password with OTP
+  resetPasswordWithOtp: async (email, otp, newPassword) => {
+    set({ loading: true });
+    try {
+      const res = await axios.post(`${API_URL}/auth/reset-password-otp`, { email, otp, newPassword });
+      set({ loading: false });
+      useToastStore.getState().addToast(res.data.message || 'Password reset successfully!', 'success');
+      return { success: true };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Failed to reset password.';
       useToastStore.getState().addToast(msg, 'error');
       return { success: false, message: msg };
     }

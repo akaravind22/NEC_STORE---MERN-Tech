@@ -1,28 +1,34 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Store } from 'lucide-react';
+import { ShoppingCart, Store, Info } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import GlassButton from '../common/GlassButton';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onViewDetails }) => {
   const { addToCart } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
-  const navigate = useNavigate();
 
-  const handleAddToCart = () => {
-    const res = addToCart(product, 1);
-    if (res === false) {
-      navigate('/login');
-    }
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
+    addToCart(product, 1);
   };
 
   const isOutOfStock = product.quantity <= 0;
   const isLowStock = product.quantity > 0 && product.quantity <= product.lowStockThreshold;
 
   return (
-    <GlassCard style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '20px' }}>
+    <GlassCard 
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        borderRadius: '20px',
+        cursor: 'pointer',
+        transition: 'transform 200ms ease, box-shadow 200ms ease'
+      }}
+      onClick={() => onViewDetails && onViewDetails(product)}
+    >
       {/* Image Header */}
       <div style={{ position: 'relative', width: '100%', height: '200px', overflow: 'hidden', borderRadius: '18px 18px 0 0' }}>
         <img
@@ -80,59 +86,86 @@ const ProductCard = ({ product }) => {
       {/* Body Content */}
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
         <div>
-          <Link
-            to={`/products/${product.id}`}
-            style={{ textDecoration: 'none', color: 'var(--text-main)' }}
+          <h3 
+            style={{ 
+              fontSize: '1.05rem', 
+              fontWeight: 700, 
+              marginBottom: '8px', 
+              lineHeight: 1.3,
+              color: 'var(--text-main)'
+            }}
           >
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '8px', lineHeight: 1.3 }}>
-              {product.name}
-            </h3>
-          </Link>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '16px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {product.name}
+          </h3>
+          <p style={{ 
+            fontSize: '0.85rem', 
+            color: 'var(--text-muted)', 
+            lineHeight: 1.5, 
+            marginBottom: '16px', 
+            display: '-webkit-box', 
+            WebkitLineClamp: 2, 
+            WebkitBoxOrient: 'vertical', 
+            overflow: 'hidden' 
+          }}>
             {product.description || 'Quality campus supplies for NEC students.'}
           </p>
         </div>
 
-        {/* Footer Price & Add Button */}
+        {/* Footer Price & Action Buttons */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: (isAuthenticated && user?.role === 'CUSTOMER') ? '14px' : '0px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '14px' }}>
             <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-blue)' }}>
               ₹{parseFloat(product.sellingPrice).toFixed(2)}
             </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Info size={13} /> Click for info
+            </span>
           </div>
 
-          {/* Only show Add to Cart when logged in as Student / Customer */}
-          {isAuthenticated && user?.role === 'CUSTOMER' && (
-            <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <GlassButton
+              variant="secondary"
+              size="sm"
+              icon={Info}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onViewDetails) onViewDetails(product);
+              }}
+              style={{ flex: '1 1 auto', fontSize: '0.82rem', fontWeight: 600 }}
+            >
+              Info
+            </GlassButton>
+
+            {/* Only show Add to Cart when logged in as Student / Customer */}
+            {isAuthenticated && user?.role === 'CUSTOMER' && (
               <GlassButton
                 variant="primary"
                 size="sm"
                 disabled={isOutOfStock}
                 icon={ShoppingCart}
                 onClick={handleAddToCart}
-                className="w-full"
-                style={{ width: '100%', fontWeight: 700 }}
+                style={{ flex: '2 1 auto', fontWeight: 700 }}
               >
                 {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
               </GlassButton>
-            </div>
-          )}
+            )}
 
-          {/* If Retailer is browsing products, show link to retailer management */}
-          {isAuthenticated && user?.role === 'RETAILER' && (
-            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-              <Link to="/retailer/products" style={{ textDecoration: 'none', width: '100%' }}>
-                <GlassButton
-                  variant="secondary"
-                  size="sm"
-                  icon={Store}
-                  style={{ width: '100%', fontSize: '0.8rem', fontWeight: 600 }}
-                >
-                  Manage in Stock
-                </GlassButton>
-              </Link>
-            </div>
-          )}
+            {/* If Retailer is browsing products, show link to retailer management */}
+            {isAuthenticated && user?.role === 'RETAILER' && (
+              <GlassButton
+                variant="secondary"
+                size="sm"
+                icon={Store}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.location.href = '/retailer/products';
+                }}
+                style={{ flex: '2 1 auto', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                Manage
+              </GlassButton>
+            )}
+          </div>
         </div>
       </div>
     </GlassCard>
